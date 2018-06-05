@@ -48,8 +48,9 @@ function Camera(rotStep,walkStep) {
 		// Calculate new position considering the amount, the position and the direction
 		var dirx = Math.sin(this.rotation.x);
 		var diry = Math.cos(this.rotation.y);
-		this.position.x += dirx * amount * this.walkStep; 
-		this.position.y += diry * amount * this.walkStep;
+		this.position.x = Math.floor(this.position.x + (dirx * amount * this.walkStep)); 
+		this.position.y = Math.floor(this.position.y  + (diry * amount * this.walkStep));
+
 	}
 }
 
@@ -144,7 +145,6 @@ function Shape(geometry,shapeSize,shapePosition,shapeRotation){
 		var dz = this.shapePosition.z-camera.position.z;
 		var distance = hypo(dx,dy,dz);
 		
-		console.log(dot);
 		context.strokeStyle="darkred"; 
 		context.stroke();
 
