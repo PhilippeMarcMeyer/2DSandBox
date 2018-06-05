@@ -1,27 +1,68 @@
 /* Philippe Meyer */
 
-var things = [];
+window.onload = function() {
+	var canvas = document.getElementById("canvas"),
+		context = canvas.getContext("2d"),
+		width = canvas.width = window.innerWidth,
+		height = canvas.height = window.innerHeight
+		
+	var things = [];
+	var needUpdate = true;
+	
+	var fov = width /2;
+	var w2 = width/2;
+	var h2 = height/2;
+	
+	var camera = new Camera(0.1,20);
 
-var w = 640;
-var h = 480;
-var fov = 500;
-var w2 = w/2;
-var h2 = h/2;
+	things.push(new Shape(new Cube(),80,{x:40,y:20,z:50},{x:0,y:0,z:0}));
+	things.push(new Shape(new Cube(),40,{x:-150,y:20,z:100},{x:0.2,y:0,z:0}));
 
-function setup() {
+	update();
 
-	createCanvas(w, h);
-	things.push(new Shape(new Cube(),80,{x:40,y:20,z:50},{x:0.3,y:0,z:0}));
-	things.push(new Shape(new Cube(),40,{x:-150,y:20,z:100},{x:0.1,y:1,z:0}));
+function update() {
+	if(needUpdate){
+		
+		context.clearRect(0, 0 ,width, height);
+
+		things.forEach(function(thing){
+			thing.draw();
+		});
+		needUpdate = false;
+	}
+	requestAnimationFrame(update);
+	
 }
 
-function draw() {
-			background(225);
-
-	things.forEach(function(thing){
-		thing.draw();
-	});
+function Camera(rotStep,walkStep) {
+	this.rotation = {x:0,y:toradians(90),z:0};
+	this.position = {x:0,y:0,z:0};
+	this.walkStep = walkStep;
+	this.rotStep = rotStep;
+	this.turn = function(amount){ // -1 or +1
+		//this.rotation.x += rotAngle.x;
+		this.rotation.y += this.rotStep*amount;
+		//this.rotation.z += rotAngle.z;
+	}
+	this.walk = function(amount){// -1 or +1
+		// Calculate new position considering the amount, the position and the direction
+		var dirx = Math.sin(this.rotation.x);
+		var diry = Math.cos(this.rotation.y);
+		this.position.x += dirx * amount * this.walkStep; 
+		this.position.y += diry * amount * this.walkStep;
+	}
 }
+
+// Converts from degrees to radians.
+function  toradians(degrees) {
+	return degrees * Math.PI / 180;
+}
+
+// Converts from radians to degrees.
+function todegrees(radians) {
+	return radians * 180 / Math.PI;
+}
+
 
 function Cube(){
 	this.data = [
@@ -41,6 +82,31 @@ this.poly[2]=[4,5,6,7];
 this.poly[3]=[5,0,3,6];
 this.poly[4]=[5,4,1,0];
 this.poly[5]=[3,2,7,6];
+}
+
+function scalarProduct(a,b){
+var ax=a.x;
+var ay=a.y;
+var az=a.z;
+var bx=b.x;
+var by=b.y;
+var bz=b.z;
+
+var len = hypo(ax,ay,az);
+ax=ax/len;
+ay=ay/len;
+az=az/len;
+
+len = hypo(bx,by,bz);
+bx=bx/len;
+by=by/len;
+bz=bz/len;
+
+return ax*bx+ay*by+az*bz;
+}
+
+function hypo(x,y,z){
+return Math.sqrt(x*x+y*y+z*z);
 }
 
 function Shape(geometry,shapeSize,shapePosition,shapeRotation){
@@ -70,8 +136,17 @@ function Shape(geometry,shapeSize,shapePosition,shapeRotation){
 	}
 	
 	this.draw=function(){
-		var c = color(225, 50, 0);
-		stroke(c);
+		var self=this;
+		var dot=scalarProduct(this.shapePosition,camera.rotation);
+		
+		var dx = this.shapePosition.x-camera.position.x;
+		var dy = this.shapePosition.y-camera.position.y;
+		var dz = this.shapePosition.z-camera.position.z;
+		var distance = hypo(dx,dy,dz);
+		
+		console.log(dot);
+		context.strokeStyle="darkred"; 
+		context.stroke();
 
 		var scale;
 		var points = [];
@@ -93,25 +168,31 @@ function Shape(geometry,shapeSize,shapePosition,shapeRotation){
 			point.z += shapePosition.z;
 
 			
-			scale=fov/(fov+point.z);
+			scale=fov/(fov+distance);
 			var x = Math.floor(point.x*scale+w2);
 			var y = Math.floor(point.y*scale+h2);
 			points2D.push({"x":x,"y":y});
 		});
-		
+		context.beginPath();
 		for(var i = 0;i < this.polyNr;i++){
 			var polyPoints = this.geometry.poly[i];
-			for(var j = 0;j < polyPoints.length;j++){
-				if(j == polyPoints.length -1){
-					line(points2D[polyPoints[j]].x, points2D[polyPoints[j]].y, points2D[polyPoints[0]].x, points2D[polyPoints[0]].y);
-				}else{
-					line(points2D[polyPoints[j]].x, points2D[polyPoints[j]].y, points2D[polyPoints[j+1]].x, points2D[polyPoints[j+1]].y);
-				}
-			}
+			drawPoly(context,points2D,polyPoints);
 		}
-stroke(c);
+		context.stroke();
 	}
 	
+}
+
+function drawPoly(context,points,poly){
+	
+	context.moveTo(points[poly[0]].x, points[poly[0]].y);		
+
+	for(var i = 1; i < poly.length; i++) {
+		context.lineTo(points[poly[i]].x, points[poly[i]].y);
+	}
+	
+	context.lineTo(points[poly[0]].x, points[poly[0]].y);
+
 }
 
 function doRotate(points,pitch, roll, yaw) {
@@ -151,33 +232,31 @@ function doRotate(points,pitch, roll, yaw) {
 
 	document.addEventListener("keydown", function(event) {
 		switch(event.keyCode) {
-			case 37: // left
-				if(event.ctrlKey) {
-				}
-				else {
-				}
+			case 37: // left ctrlKey shiftKey
+				needUpdate = true;
+				camera.turn(-1);
 				break;
 			case 39: // right
-				if(event.ctrlKey) {
-				}
-				else {
-				}
+				needUpdate = true;
+				camera.turn(1);
 				break;
 			case 38: // up
-				if(event.shiftKey) {
-				}
-				else if(event.ctrlKey) {
-				}
-				else {
-				}
+			    camera.walk(1);
+				needUpdate = true;
 				break;
 			case 40: // down
-				if(event.shiftKey) {
-				}
-				else if(event.ctrlKey) {
-				}
-				else {
-				}
+				camera.walk(-1);
+				needUpdate = true;
 				break;
 		}
 	}); 
+	
+	window.onresize = function(event) {
+		width = canvas.width = window.innerWidth,
+		height = canvas.height = window.innerHeight
+		w2 = width/2;
+		h2 = height/2;
+		fov = width /2;
+		needUpdate = true;
+	};
+}
