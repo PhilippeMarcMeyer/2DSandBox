@@ -13,10 +13,12 @@ window.onload = function() {
 	var w2 = width/2;
 	var h2 = height/2;
 	
+	var k90degres = toradians(90);
+	var k360degres = toradians(360);
 	var camera = new Camera(0.1,20);
 
-	things.push(new Shape(new Cube(),80,{x:40,y:20,z:50},{x:0,y:0,z:0}));
-	things.push(new Shape(new Cube(),40,{x:-150,y:20,z:100},{x:0.2,y:0,z:0}));
+	things.push(new Shape(new Cube(),80,{x:40,y:20,z:-300},{x:0.2,y:0.1,z:0},"one")),
+	//things.push(new Shape(new Cube(),40,{x:-150,y:20,z:100},{x:0.2,y:0,z:0},"two"));
 
 	update();
 
@@ -41,16 +43,17 @@ function Camera(rotStep,walkStep) {
 	this.rotStep = rotStep;
 	this.turn = function(amount){ // -1 or +1
 		//this.rotation.x += rotAngle.x;
-		this.rotation.y += this.rotStep*amount;
-		//this.rotation.z += rotAngle.z;
+		this.rotation.y -= this.rotStep*amount;
+		if(this.rotation.y <0) this.rotation.y  += k360degres;
+		if(this.rotation.y >k360degres ) this.rotation.y  =0;
+		console.log("Camera : " + Math.floor(todegrees(this.rotation.y)));
 	}
 	this.walk = function(amount){// -1 or +1
 		// Calculate new position considering the amount, the position and the direction
-		var dirx = Math.sin(this.rotation.x);
-		var diry = Math.cos(this.rotation.y);
-		this.position.x = Math.floor(this.position.x + (dirx * amount * this.walkStep)); 
-		this.position.y = Math.floor(this.position.y  + (diry * amount * this.walkStep));
-
+		var dirx = Math.sin(this.rotation.y);
+		var dirz = Math.cos(this.rotation.y);
+		this.position.x = Math.floor(this.position.x - (dirx * amount * this.walkStep)); 
+		this.position.z = Math.floor(this.position.z - (dirz * amount * this.walkStep));
 	}
 }
 
@@ -110,13 +113,13 @@ function hypo(x,y,z){
 return Math.sqrt(x*x+y*y+z*z);
 }
 
-function Shape(geometry,shapeSize,shapePosition,shapeRotation){
+function Shape(geometry,shapeSize,shapePosition,shapeRotation,name){
 	
 	this.shapeSize = shapeSize;
 	this.shapePosition = shapePosition;
 	this.rotation = shapeRotation;
 	this.geometry = {};
-
+    this.name = name;
 	
 	this.geometry.data = [];
 	this.geometry.poly = [];
@@ -137,51 +140,72 @@ function Shape(geometry,shapeSize,shapePosition,shapeRotation){
 	}
 	
 	this.draw=function(){
-		var self=this;
-		var dot=scalarProduct(this.shapePosition,camera.rotation);
 		
-		var dx = this.shapePosition.x-camera.position.x;
-		var dy = this.shapePosition.y-camera.position.y;
-		var dz = this.shapePosition.z-camera.position.z;
-		var distance = hypo(dx,dy,dz);
+		var centerOfItem = {"x":this.shapePosition.x,"y":this.shapePosition.y,"z":this.shapePosition.z}; // For (my) ease of comprehension !
+		//var dot=scalarProduct(this.shapePosition,camera.rotation);
+		var angle = camera.rotation.y;
+		var angleDegres = todegrees(angle);
+		var pointX = centerOfItem.x;
+		var pointZ = centerOfItem.z;
 		
-		context.strokeStyle="darkred"; 
-		context.stroke();
+		var originX = camera.position.x;
+		var originZ = camera.position.z;	
+		
+		var cos = Math.cos(angle);
+		var sin = Math.sin(angle) ;
+		
+		var dX = pointX - originX;
+		var dZ = pointZ - originZ;
+		
+		var x =  cos * dX - sin * dZ + originZ;
+		var z =  sin * dX + cos * dZ + originZ;
+		
+		var distance = Math.sqrt(x*x+z*z);
+		
+		centerOfItem.x = x;
+		centerOfItem.z = z;
+		
+		console.log("item : " + this.name +" " + Math.floor(centerOfItem.x)+"," + Math.floor(centerOfItem.z));
+		
+	var doDraw = true; // centerOfItem.z >0;
+		if(doDraw){
+			context.strokeStyle="darkred"; 
+			context.stroke();
 
-		var scale;
-		var points = [];
-		this.geometry.data.forEach(function(point){
-			var copyOfPoint = {"x":point.x,"y":point.y,"z":point.z};
-			points.push(copyOfPoint);
-		});
-		points = doRotate(points,this.rotation.x,this.rotation.y,this.rotation.z);
-		var points2D = [];
-		var shapeSize =  this.shapeSize;
-		var shapePosition = this.shapePosition;
-		points.forEach(function(point){
-			point.x *= shapeSize;
-			point.y *= shapeSize;
-			point.z *= shapeSize;
-			
-			point.x += shapePosition.x;
-			point.y += shapePosition.y;
-			point.z += shapePosition.z;
-
-			
-			scale=fov/(fov+distance);
-			var x = Math.floor(point.x*scale+w2);
-			var y = Math.floor(point.y*scale+h2);
-			points2D.push({"x":x,"y":y});
-		});
-		context.beginPath();
-		for(var i = 0;i < this.polyNr;i++){
-			var polyPoints = this.geometry.poly[i];
-			drawPoly(context,points2D,polyPoints);
+			var scale;
+			var points = [];
+			this.geometry.data.forEach(function(point){
+				var copyOfPoint = {"x":point.x,"y":point.y,"z":point.z};
+				points.push(copyOfPoint);
+			});
+			points = doRotate(points,this.rotation.x,this.rotation.y,this.rotation.z);//-camera.rotation.y,
+			var points2D = [];
+			var shapeSize =  this.shapeSize;
+			var shapePosition = this.shapePosition;
+			points.forEach(function(point){
+				point.x *= shapeSize;
+				point.y *= shapeSize;
+				point.z *= shapeSize;
+				
+				point.x += centerOfItem.x;
+				point.y += centerOfItem.y;
+				point.z += centerOfItem.z;
+				
+								
+				scale=fov/(fov+distance);
+				var x = Math.floor(point.x*scale+w2);
+				var y = Math.floor(point.y*scale+h2);
+				points2D.push({"x":x,"y":y});
+			});
+			context.beginPath();
+			for(var i = 0;i < this.polyNr;i++){
+				var polyPoints = this.geometry.poly[i];
+				drawPoly(context,points2D,polyPoints);
+			}
+			context.stroke();
 		}
-		context.stroke();
 	}
-	
-}
+}	
 
 function drawPoly(context,points,poly){
 	
@@ -193,6 +217,10 @@ function drawPoly(context,points,poly){
 	
 	context.lineTo(points[poly[0]].x, points[poly[0]].y);
 
+}
+function simpleRotate(item,angle){
+	rotatedX = x * cos(angle) - y * sin(angle)
+   rotatedY = y * cos(angle) + x * sin(angle)
 }
 
 function doRotate(points,pitch, roll, yaw) {
