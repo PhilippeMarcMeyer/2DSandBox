@@ -252,6 +252,14 @@ function simpleRotate(item,angle){
    rotatedY = y * cos(angle) + x * sin(angle)
 }
 
+function calcRotationGivenAdjacentSide(adjacent, hypotenuse){
+	if(!hypotenuse) hypotenuse = 1; // if already normed
+	var ratio = adjacent/hypotenuse;
+	var result = 1 - ratio*ratio/2;
+	result = Math.acos(result);
+	return result;	
+}
+	
 function doRotate(points,pitch, roll, yaw) {
     var cosa = Math.cos(yaw);
     var sina = Math.sin(yaw);
