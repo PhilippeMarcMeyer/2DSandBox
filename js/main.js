@@ -9,7 +9,7 @@ window.onload = function() {
 	var things = [];
 	var needUpdate = true;
 	
-	var fov = width*2;
+	var fov = width;
 	var w2 = width/2;
 	var h2 = height/2;
 	
@@ -20,20 +20,20 @@ window.onload = function() {
 	var camera = new Camera(0.1,20);
 	context.translate(width / 2, height / 2);
 // primitive,size,distance,altitude,angleToOrigine,rotation,name
-	var aRotation = {x:0.2,y:0.1,z:0};
+	var aRotation = {x:0,y:0,z:0};
 	var cubePrime = new Cube();
 	var nrOfCubes = 6;
 	var angleDiff = toradians(360/nrOfCubes);
 	var distance,size,altitude,angleToOrigine,name;
-	
+	angleToOrigine = 0;
 	for(var i = 0;i < nrOfCubes ;i++){
 		name = String.fromCharCode(65+i);
-		size = 20 ;
+		size = 80 ;
 		altitude = 0;
-		distance = 120;
-		angleToOrigine = angleDiff * i;
+		distance =1000;
+		
 		things.push(new Shape(cubePrime,size,distance,altitude,angleToOrigine,aRotation,name));
-
+		angleToOrigine += angleDiff;
 	}
 
 	update();
@@ -167,12 +167,13 @@ function Shape(geometry,size,distance,altitude,angleToOrigine,rotation,name){
 		
 		var sin = Math.sin(newRotation);
 		var cos = Math.cos(newRotation);
+		// not normed
 		var newPositionFromCenter = {
 			"x": Math.floor(sin*this.distance),
 			"y": this.altitude,
 			"z":-Math.floor(cos*this.distance)
 		};
-		var newDistance = this.distance; // for the present we dont walk
+		var newDistance = Math.abs(this.distance); // for the present we dont walk
 		// var diffX = newPositionFromCenter.x - camera.position.x;
 		// var diffY = newPositionFromCenter.y - camera.position.y;
 		// var diffZ = newPositionFromCenter.z - camera.position.z;
@@ -188,8 +189,8 @@ doDraw = newRotation < k90degres || newRotation > k270degres;
 		
 	//var doDraw = true; 
 		if(doDraw){
-			context.strokeStyle="darkred"; 
-			context.stroke();
+			context.strokeStyle="black"; 
+			//context.stroke();
 
 			var scale;
 			var points = [];
@@ -213,18 +214,24 @@ doDraw = newRotation < k90degres || newRotation > k270degres;
 				point.z += newPositionFromCenter.z;
 				
 								
-				scale=fov/(fov+newDistance);
-				var x = Math.floor(point.x*scale);
+				scale=fov/(fov-point.z);
+				var x = -Math.floor(point.x*scale);
 				var y = Math.floor(point.y*scale);
 				points2D.push({"x":x,"y":y});
+			
 			});
 			context.beginPath();
-			for(var i = 0;i < this.polyNr;i++){
+			context.strokeStyle="darkred"; 
+			for(var i = 0;i < this.polyNr-1;i++){
 				var polyPoints = this.geometry.poly[i];
 				drawPoly(context,points2D,polyPoints);
+				context.stroke();
+				context.strokeStyle="black"; 
 			}
-			
+			context.strokeStyle="darkblue"; 
+			drawPoly(context,points2D,polyPoints);
 			context.stroke();
+			
 			var x2d = points2D[this.polyNr/2].x;
 			var y2d = points2D[this.polyNr/2].y;
 			var z3d = points[this.polyNr/2].z;
