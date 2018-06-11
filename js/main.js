@@ -191,24 +191,25 @@ function Shape(geometry,size,distance,altitude,angleToOrigine,rotation,name){
 			var newDistance = Math.abs(this.distance); // for the present we dont walk
 		
 		}else{
+			// Get the distance to the object
 			var diffX = this.position.x - camera.position.x;
 			var diffY = this.position.y - camera.position.y;
 			var diffZ = this.position.z - camera.position.z;
-			var newDistance = hypo(diffX,diffY,diffZ);
-			var projectedCam;
+			var distanceToObject = hypo(diffX,diffY,diffZ);
+			if(distanceToObject == 0) distanceToObject =1;
+			var projectedCam={"x":camera.position.x*distanceToObject,"y":camera.position.y,"z":camera.position.z*distanceToObject};
+			var camRotation = calcAngleRadians(projectedCam.x,projectedCam.z);
+			var objectAngle = calcAngleRadians(this.position.x,this.position.z);
+			var newRotation = objectAngle - camRotation;
+			if(newRotation <0) newRotation  += k360degres;
+			if(newRotation >k360degres ) newRotation  -= k360degres;
+			var newPositionFromCenter = {
+				"x": Math.floor(cos*distanceToObject),
+				"y": this.altitude,
+				"z":-Math.floor(sin*distanceToObject)
+			};
 		}
-		// var diffX = newPositionFromCenter.x - camera.position.x;
-		// var diffY = newPositionFromCenter.y - camera.position.y;
-		// var diffZ = newPositionFromCenter.z - camera.position.z;
 
-		// var newDistance = hypo(diffX,diffY,diffZ);
-		// var newPosition = {
-			// "x": Math.floor(sin*this.distance),
-			// "y": this.altitude,
-			// "z":-Math.floor(cos*this.distance)
-		// };
-		
-//doDraw = newRotation < k90degres || newRotation > k270degres;
 doDraw = newRotation <= k180degres;		
 		if(doDraw){
 			context.strokeStyle="black"; 
@@ -341,12 +342,12 @@ function calcAngleRadians(x, y) { // origine : calcAngleDegrees
 				camera.turn(1);
 				break;
 			case 38: // up
-			    //camera.walk(1);
-				//needUpdate = true;
+			    camera.walk(1);
+				needUpdate = true;
 				break;
 			case 40: // down
-				//camera.walk(-1);
-				//needUpdate = true;
+				camera.walk(-1);
+				needUpdate = true;
 				break;
 		}
 	}); 
