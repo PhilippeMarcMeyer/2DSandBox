@@ -1,24 +1,20 @@
 /* Philippe Meyer */
 
+
+
 window.onload = function() {
-	var canvas = document.getElementById("canvas"),
-		context = canvas.getContext("2d"),
-		width = canvas.width = window.innerWidth,
-		height = canvas.height = window.innerHeight
-		
+	var needUpdate,width,height,fov,h2,w2,k90degres,k270degres,k360degres;
+
+	var canvas = document.getElementById("canvas");
+	var	context = canvas.getContext("2d");
 	var things = [];
-	var needUpdate = true;
+	var camera = new Camera(0.1,20,toradians(90));
+		
+init();
+
 	
-	var fov = width;
-	var w2 = width/2;
-	var h2 = height/2;
 	
-	var k90degres = toradians(90);
-	var k270degres = toradians(270);
-	var k360degres = toradians(360);
 	
-	var camera = new Camera(0.1,20);
-	context.translate(width / 2, height / 2);
 // primitive,size,distance,altitude,angleToOrigine,rotation,name
 	var aRotation = {x:0,y:0,z:0};
 	var cubePrime = new Cube();
@@ -38,6 +34,24 @@ window.onload = function() {
 
 	update();
 
+	
+function init(){
+	
+	width = canvas.width = window.innerWidth;
+	height = canvas.height = window.innerHeight;
+	needUpdate = true;
+	fov = width;
+	w2 = width/2;
+	h2 = height/2;
+	k90degres = toradians(90);
+	k180degres = toradians(180);
+	k270degres = toradians(270);
+	k360degres = toradians(360);
+	context.translate(width / 2, height / 2);
+	needUpdate = true;
+
+}
+
 function update() {
 	needUpdate = true;
 	if(needUpdate){
@@ -52,8 +66,8 @@ function update() {
 	
 }
 
-function Camera(rotStep,walkStep) {
-	this.rotation = 0; 
+function Camera(rotStep,walkStep,rotation) {
+	this.rotation = rotation ? rotation : 0; 
 	this.position = {x:0,y:0,z:0};
 	this.walkStep = walkStep;
 	this.rotStep = rotStep;
@@ -160,20 +174,29 @@ function Shape(geometry,size,distance,altitude,angleToOrigine,rotation,name){
 	}
 	
 	this.draw=function(){
+		if(camera.position.x == 0 && camera.position.z == 0){		
+			var newRotation = this.angleToOrigine - camera.rotation;
+				if(newRotation <0) newRotation  += k360degres;
+				if(newRotation >k360degres ) newRotation  -= k360degres;
+			
+			var cos = Math.cos(newRotation);
+			var sin = Math.sin(newRotation);
+
+			// not normed
+			var newPositionFromCenter = {
+				"x": Math.floor(cos*this.distance),
+				"y": this.altitude,
+				"z":-Math.floor(sin*this.distance)
+			};
+			var newDistance = Math.abs(this.distance); // for the present we dont walk
 		
-		var newRotation = this.angleToOrigine - camera.rotation;
-			if(newRotation <0) newRotation  += k360degres;
-			if(newRotation >k360degres ) newRotation  -= k360degres;
-		
-		var sin = Math.sin(newRotation);
-		var cos = Math.cos(newRotation);
-		// not normed
-		var newPositionFromCenter = {
-			"x": Math.floor(sin*this.distance),
-			"y": this.altitude,
-			"z":-Math.floor(cos*this.distance)
-		};
-		var newDistance = Math.abs(this.distance); // for the present we dont walk
+		}else{
+			var diffX = this.position.x - camera.position.x;
+			var diffY = this.position.y - camera.position.y;
+			var diffZ = this.position.z - camera.position.z;
+			var newDistance = hypo(diffX,diffY,diffZ);
+			var projectedCam;
+		}
 		// var diffX = newPositionFromCenter.x - camera.position.x;
 		// var diffY = newPositionFromCenter.y - camera.position.y;
 		// var diffZ = newPositionFromCenter.z - camera.position.z;
@@ -185,12 +208,10 @@ function Shape(geometry,size,distance,altitude,angleToOrigine,rotation,name){
 			// "z":-Math.floor(cos*this.distance)
 		// };
 		
-doDraw = newRotation < k90degres || newRotation > k270degres;
-		
-	//var doDraw = true; 
+//doDraw = newRotation < k90degres || newRotation > k270degres;
+doDraw = newRotation <= k180degres;		
 		if(doDraw){
 			context.strokeStyle="black"; 
-			//context.stroke();
 
 			var scale;
 			var points = [];
@@ -198,7 +219,7 @@ doDraw = newRotation < k90degres || newRotation > k270degres;
 				var copyOfPoint = {"x":point.x,"y":point.y,"z":point.z};
 				points.push(copyOfPoint);
 			});
-			points = doRotate(points,this.rotation.x,this.rotation.y,this.rotation.z);
+			points = doRotate(points,this.rotation.x+newRotation,this.rotation.y,this.rotation.z);
 			var points2D = [];
 			var size =  this.size;
 			var position = this.position;
@@ -301,6 +322,13 @@ function doRotate(points,pitch, roll, yaw) {
 	return points;
 }
 
+function calcAngleDegrees(x, y) { // origine : MDN docs
+  return Math.atan2(y, x) * 180 / Math.PI;
+}
+
+function calcAngleRadians(x, y) { // origine : calcAngleDegrees
+  return Math.atan2(y, x);
+}
 
 	document.addEventListener("keydown", function(event) {
 		switch(event.keyCode) {
@@ -324,11 +352,6 @@ function doRotate(points,pitch, roll, yaw) {
 	}); 
 	
 	window.onresize = function(event) {
-		width = canvas.width = window.innerWidth,
-		height = canvas.height = window.innerHeight
-		w2 = width/2;
-		h2 = height/2;
-		fov = width;
-		needUpdate = true;
+		init();
 	};
 }
