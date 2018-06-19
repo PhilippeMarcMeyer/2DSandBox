@@ -8,14 +8,13 @@ window.onload = function() {
 	var canvas = document.getElementById("canvas");
 	var	context = canvas.getContext("2d");
 	var things = [];
-	var camera = new Camera(0.1,20,toradians(90));
+	var camera = new Camera(0.1,5,toradians(90));
 		
 init();
 
 	
+	/*
 	
-	
-// primitive,size,distance,altitude,angleToOrigine,rotation,name
 	var aRotation = {x:0,y:0,z:0};
 	var cubePrime = new Cube();
 	var nrOfCubes = 6;
@@ -31,6 +30,12 @@ init();
 		things.push(new Shape(cubePrime,size,distance,altitude,angleToOrigine,aRotation,name));
 		angleToOrigine += angleDiff;
 	}
+*/
+things.push(new Square(10,100,k90degres,"A"));
+
+things.push(new Square(10,140,k90degres-0.2,"B"));
+
+things.push(new Square(10,250,k180degres-0.5,"C"));
 
 	update();
 
@@ -80,10 +85,10 @@ function Camera(rotStep,walkStep,rotation) {
 	}
 	this.walk = function(amount){// -1 or +1
 		// Calculate new position considering the amount, the position and the direction
-		var dirx = Math.sin(this.rotation);
-		var dirz = Math.cos(this.rotation);
-		this.position.x = Math.floor(this.position.x - (dirx * amount * this.walkStep)); 
-		this.position.z = Math.floor(this.position.z - (dirz * amount * this.walkStep));
+		var dirx = Math.cos(this.rotation);
+		var dirz = - Math.sin(this.rotation);
+		this.position.x = Math.floor(this.position.x + (dirx * amount * this.walkStep)); 
+		this.position.z = Math.floor(this.position.z + (dirz * amount * this.walkStep));
 	}
 }
 
@@ -143,6 +148,60 @@ function hypo(x,y,z){
 return Math.sqrt(x*x+y*y+z*z);
 }
 // primitive,size,distance,altitude,angleToOrigine,rotation,name
+function Square(size,distance,angleToOrigine,name){
+	this.size = size;
+	this.distance = distance;
+	this.angleToOrigine = angleToOrigine; 
+	this.name = name;
+	this.positionAbsolute = {x:0,y:0};
+	this.positionRelative = {x:0,y:0};
+	this.half = Math.floor(size/2);
+	
+	var cos = Math.cos(this.angleToOrigine);
+	var sin = -Math.sin(this.angleToOrigine);
+	
+	
+	
+	this.positionAbsolute.x = Math.floor(cos*distance);
+	this.positionAbsolute.y = Math.floor(sin*distance);
+
+	this.draw = function(){
+		var self = this;
+			self.positionRelative.x = self.positionAbsolute.x;
+			self.positionRelative.y = self.positionAbsolute.y;
+			context.beginPath();
+			context.strokeStyle="black"; 
+			context.moveTo(self.positionRelative.x-self.half, self.positionRelative.y-self.half);
+			context.rect(self.positionRelative.x-self.half,self.positionRelative.y-self.half,self.half,self.half);
+			var message = self.name;
+			context.fillText(message, self.positionRelative.x+5, self.positionRelative.y-5);
+			context.closePath();
+			context.stroke();
+			
+			context.beginPath();
+			context.strokeStyle="red"; 
+			
+			context.arc(0, 0, self.distance, 0, Math.PI * 2, true);
+			context.closePath();
+			context.stroke();
+			
+			context.beginPath();
+			context.strokeStyle="darkblue"; 
+			//context.arc(0, 0, 2, 0, Math.PI * 2, true);
+			var messagePosition = camera.position.x + "," + camera.position.z;
+			var camCos = Math.cos(camera.rotation);
+			var camSin = -Math.sin(camera.rotation);
+			
+			context.arc(camera.position.x, camera.position.z, 2, 0, Math.PI * 2, true);
+			var vectorCam = {x:camCos*30,y:camSin*30};
+			//context.moveTo(0, 0);
+			context.lineTo(camera.position.x+vectorCam.x, camera.position.z+vectorCam.y);
+
+			context.fillText(messagePosition+" * " + Math.floor(camera.rotation * 180 / Math.PI) +" °", camera.position.x + 30, camera.position.z -30);
+			context.closePath();
+			context.stroke();
+	}
+}
 
 function Shape(geometry,size,distance,altitude,angleToOrigine,rotation,name){
 	
@@ -150,7 +209,7 @@ function Shape(geometry,size,distance,altitude,angleToOrigine,rotation,name){
 	this.distance = distance;
 	this.altitude = altitude;
 	this.angleToOrigine = angleToOrigine; // something to do with the cam rotation its only an integer
-	this.position = {"x":0,"y":altitude,"z":distance};	//initial position with camera at 0 degree
+	this.position = {"x":Math.cos(angleToOrigine)*distance,"y":altitude,"z":Math.sin(angleToOrigine)*distance};	//initial position with camera at 0 degree
 	this.rotation = rotation;// nothing to do with the cam rotation
 	this.geometry = {};
     this.name = name;
@@ -183,37 +242,40 @@ function Shape(geometry,size,distance,altitude,angleToOrigine,rotation,name){
 			var sin = Math.sin(newRotation);
 
 			// not normed
-			var newPositionFromCenter = {
+			this.position = {
 				"x": Math.floor(cos*this.distance),
 				"y": this.altitude,
 				"z":-Math.floor(sin*this.distance)
 			};
-			var newDistance = Math.abs(this.distance); // for the present we dont walk
-		
+
+
 		}else{
+			
+			// the circle is enlarged or shrunk but the angler of the camera does not change
+			// the the angle of the cube to the camera changes
 			// Get the distance to the object
-			var diffX = this.position.x - camera.position.x;
-			var diffY = this.position.y - camera.position.y;
-			var diffZ = this.position.z - camera.position.z;
-			var distanceToObject = hypo(diffX,diffY,diffZ);
-			if(distanceToObject == 0) distanceToObject =1;
-			var projectedCam={"x":camera.position.x*distanceToObject,"y":camera.position.y,"z":camera.position.z*distanceToObject};
-			var camRotation = calcAngleRadians(projectedCam.x,projectedCam.z);
-			var objectAngle = calcAngleRadians(this.position.x,this.position.z);
-			var newRotation = objectAngle - camRotation;
-			if(newRotation <0) newRotation  += k360degres;
-			if(newRotation >k360degres ) newRotation  -= k360degres;
-			var newPositionFromCenter = {
-				"x": Math.floor(cos*distanceToObject),
-				"y": this.altitude,
-				"z":-Math.floor(sin*distanceToObject)
-			};
+			
+			var cubeX = this.position.x - camera.position.x;
+			var cubeY= this.position.y - camera.position.y;
+			var cubeZ = this.position.z - camera.position.z;
+
+			var newDistance = hypo(cubeX,cubeY,cubeZ);
+			if(newDistance < 1) newDistance = 1;
+			
+			var cosCube = cubeX / newDistance;
+			var sinCube = cubeZ / newDistance;
+			
+			this.angleToOrigine = calcAngleRadians(cosCube,sinCube);
+
+			this.position = {"x":Math.cos(this.angleToOrigine)*newDistance,"y":this.altitude,"z":Math.sin(this.angleToOrigine)*newDistance};
+			this.distance = newDistance;
+			
 		}
 
 doDraw = newRotation <= k180degres;		
 		if(doDraw){
 			context.strokeStyle="black"; 
-
+			var self = this;
 			var scale;
 			var points = [];
 			this.geometry.data.forEach(function(point){
@@ -231,9 +293,9 @@ doDraw = newRotation <= k180degres;
 				point.y *= size;
 				point.z *= size;
 				
-				point.x += newPositionFromCenter.x;
-				point.y += newPositionFromCenter.y;
-				point.z += newPositionFromCenter.z;
+				point.x += self.position.x;
+				point.y += self.position.y;
+				point.z += self.position.z;
 				
 								
 				scale=fov/(fov-point.z);
@@ -258,7 +320,7 @@ doDraw = newRotation <= k180degres;
 			var y2d = points2D[this.polyNr/2].y;
 			var z3d = points[this.polyNr/2].z;
 			
-			var message = this.name + " : " + Math.floor(todegrees(newRotation))+" ° => z = " + Math.floor(z3d) ;
+			var message = this.name + " : " + Math.floor(todegrees(this.angleToOrigine))+" ° => z = " + Math.floor(z3d) ;
 			context.fillText(message,x2d ,y2d+20);
 			
 		}
