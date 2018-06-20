@@ -15,3 +15,5 @@ be able to do the same where ever the camera is
 stop moving or rotation de camera arrow but move and rotate the word around
 go 3D with wireframe cubes
 
+#Step 1 illustrated
+![result for step 1](https://raw.githubusercontent.com/PhilippeMarcMeyer/3DStuff/master/img/step1.jpg)
