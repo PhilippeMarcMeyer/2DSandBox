@@ -211,7 +211,7 @@ function Square(size,distance,angleToOrigine,name){
 			var camCos = Math.cos(camera.rotation);
 			var camSin = -Math.sin(camera.rotation);
 			var vectorCam = {x:camCos*30,y:camSin*30};
-			drawArrow(context,camera.position.x,camera.position.y,camera.position.x+vectorCam.x,camera.position.z+vectorCam.y);
+			drawArrow(context,camera.position.x,camera.position.z,camera.position.x+vectorCam.x,camera.position.z+vectorCam.y);
 			context.fillText(messagePosition+" * " + Math.floor(camera.rotation * 180 / Math.PI) +" °", camera.position.x + 30, camera.position.z -30);
 			context.closePath();
 			context.stroke();
