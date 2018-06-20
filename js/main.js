@@ -62,7 +62,11 @@ function update() {
 	needUpdate = true;
 	if(needUpdate){
 		//context.rect(-w2+10,-h2+10,width-10,height-10);
-		context.clearRect(-w2 , -h2, width, height);
+		//context.clearRect(-w2 , -h2, width, height);
+		context.fillStyle="white"; 
+		context.rect(-w2 , -h2, width, height);
+		context.fill();
+		context.fillStyle="black"; 
 		things.forEach(function(thing){
 			thing.draw();
 		});
