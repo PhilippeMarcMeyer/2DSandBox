@@ -49,6 +49,7 @@ function init(){
 	w2 = width/2;
 	h2 = height/2;
 	k90degres = toradians(90);
+	k45degres = toradians(45);
 	k180degres = toradians(180);
 	k270degres = toradians(270);
 	k360degres = toradians(360);
@@ -178,12 +179,26 @@ function Square(size,distance,angleToOrigine,name){
 			context.closePath();
 			context.stroke();
 			
+			context.globalAlpha=0.8;
+
 			context.beginPath();
 			context.strokeStyle="red"; 
-			
 			context.arc(0, 0, self.distance, 0, Math.PI * 2, true);
 			context.closePath();
 			context.stroke();
+			
+			context.globalAlpha=0.2;
+
+			context.beginPath();
+			context.strokeStyle="green"; 
+			context.moveTo(-50, 0);
+			context.lineTo(50, 0);
+			context.moveTo(0, 50);
+			context.lineTo(0, -50);
+			context.closePath();
+			context.stroke();
+			
+			context.globalAlpha=1;
 			
 			context.beginPath();
 			context.strokeStyle="darkblue"; 
@@ -191,16 +206,44 @@ function Square(size,distance,angleToOrigine,name){
 			var messagePosition = camera.position.x + "," + camera.position.z;
 			var camCos = Math.cos(camera.rotation);
 			var camSin = -Math.sin(camera.rotation);
-			
-			context.arc(camera.position.x, camera.position.z, 2, 0, Math.PI * 2, true);
 			var vectorCam = {x:camCos*30,y:camSin*30};
-			//context.moveTo(0, 0);
-			context.lineTo(camera.position.x+vectorCam.x, camera.position.z+vectorCam.y);
-
+			drawArrow(context,camera.position.x,camera.position.y,camera.position.x+vectorCam.x,camera.position.z-vectorCam.y);
 			context.fillText(messagePosition+" * " + Math.floor(camera.rotation * 180 / Math.PI) +" °", camera.position.x + 30, camera.position.z -30);
 			context.closePath();
 			context.stroke();
 	}
+}
+
+function drawArrow(context,x1,y1,x2,y2){
+	var branchLentgh = 10;
+	var diffX = x2-x1;
+	var diffY = y1-y2;
+	var dist =  Math.sqrt(diffX*diffX+diffY*diffY);
+	if(dist !=0){
+		branchLentgh = Math.floor(dist/3);
+		diffX = diffX /dist;
+		diffY = diffY /dist;
+		// calculation angle given 2 points, just to practise : don't use cam rotation !
+		var rotation = calcAngleRadians(diffX,diffY);
+		var leftBranch = keepWithInCircle(rotation + k45degres);
+		var rightBranch = keepWithInCircle(rotation - k45degres);
+		context.moveTo(x1, y1);
+		context.lineTo(x2, y2);
+		
+		context.moveTo(x2, y2);
+		context.lineTo(x2-Math.cos(leftBranch)*branchLentgh, y2+Math.sin(leftBranch)*branchLentgh);
+		
+		context.moveTo(x2, y2);
+		context.lineTo(x2, y2);
+		context.lineTo(x2-Math.cos(rightBranch)*branchLentgh, y2+Math.sin(rightBranch)*branchLentgh);
+
+	}
+}
+
+function keepWithInCircle(rotation){
+	if(rotation<0) rotation  += k360degres;
+	if(rotation >k360degres ) rotation  -= k360degres;
+	return rotation;
 }
 
 function Shape(geometry,size,distance,altitude,angleToOrigine,rotation,name){
