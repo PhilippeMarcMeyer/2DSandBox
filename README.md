@@ -1,7 +1,7 @@
 # 3DStuff
 Playing with basic 3D in canvas
 
-Step 1 : Let's start with 2D as my school lesson in trogonometry are long forgotten
+Step 1 : Let's start with 2D as my school lessons in trigonometry are long forgotten
 
 Let's draw squares at diverse distances from the origin point (0,0)  
 Add circles to show that represent their future rotation along the camera origin
