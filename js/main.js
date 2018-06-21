@@ -9,8 +9,20 @@ window.onload = function() {
 	var	context = canvas.getContext("2d");
 	var things = [];
 	var camera = new Camera(0.1,5,toradians(90));
-		
+	var mode = "static";
 init();
+
+var elem = document.getElementsByName("mode");
+for (var i = 0; i < elem.length; i++) {
+    elem[i].addEventListener('click', function(){
+		
+		if(this.checked){
+			mode = this.value;
+				console.log(mode);
+		}
+	}, false);
+
+}
 
 	
 	/*
@@ -44,7 +56,6 @@ function init(){
 	
 	width = canvas.width = window.innerWidth;
 	height = canvas.height = window.innerHeight;
-	needUpdate = true;
 	fov = width;
 	w2 = width/2;
 	h2 = height/2;
@@ -54,48 +65,25 @@ function init(){
 	k270degres = toradians(270);
 	k360degres = toradians(360);
 	context.translate(width / 2, height / 2);
-	needUpdate = true;
 
 }
 
 function update() {
-	needUpdate = true;
-	if(needUpdate){
-		//context.rect(-w2+10,-h2+10,width-10,height-10);
-		//context.clearRect(-w2 , -h2, width, height);
+		context.clearRect(-w2 , -h2, width, height);
 		context.fillStyle="white"; 
 		context.rect(-w2 , -h2, width, height);
 		context.fill();
 		context.fillStyle="black"; 
+		camera.draw();
 		things.forEach(function(thing){
 			thing.draw();
 		});
-		needUpdate = false;
-	}
+
 	requestAnimationFrame(update);
 	
 }
 
-function Camera(rotStep,walkStep,rotation) {
-	this.rotation = rotation ? rotation : 0; 
-	this.position = {x:0,y:0,z:0};
-	this.walkStep = walkStep;
-	this.rotStep = rotStep;
-	this.turn = function(amount){ // -1 or +1
-		//this.rotation.x += rotAngle.x;
-		this.rotation -= this.rotStep*amount;
-		if(this.rotation<0) this.rotation  += k360degres;
-		if(this.rotation >k360degres ) this.rotation  =0;
-		//console.log("Camera : " + Math.floor(todegrees(this.rotation)));
-	}
-	this.walk = function(amount){// -1 or +1
-		// Calculate new position considering the amount, the position and the direction
-		var dirx = Math.cos(this.rotation);
-		var dirz = - Math.sin(this.rotation);
-		this.position.x = Math.floor(this.position.x + (dirx * amount * this.walkStep)); 
-		this.position.z = Math.floor(this.position.z + (dirz * amount * this.walkStep));
-	}
-}
+
 
 // Converts from degrees to radians.
 function  toradians(degrees) {
@@ -152,6 +140,54 @@ return ax*bx+ay*by+az*bz;
 function hypo(x,y,z){
 return Math.sqrt(x*x+y*y+z*z);
 }
+
+function Camera(rotStep,walkStep,rotation) {
+	this.rotation = rotation ? rotation : 0; 
+	this.position = {x:0,y:0,z:0};
+	this.walkStep = walkStep;
+	this.rotStep = rotStep;
+	this.turn = function(amount){ // -1 or +1
+		//this.rotation.x += rotAngle.x;
+		this.rotation -= this.rotStep*amount;
+		if(this.rotation<0) this.rotation  += k360degres;
+		if(this.rotation >k360degres ) this.rotation  =0;
+		//console.log("Camera : " + Math.floor(todegrees(this.rotation)));
+	}
+	this.walk = function(amount){// -1 or +1
+		// Calculate new position considering the amount, the position and the direction
+		var dirx = Math.cos(this.rotation);
+		var dirz = - Math.sin(this.rotation);
+		this.position.x = Math.floor(this.position.x + (dirx * amount * this.walkStep)); 
+		this.position.z = Math.floor(this.position.z + (dirz * amount * this.walkStep));
+	}
+	this.draw = function(){
+		
+		// Cross for the origin
+			context.globalAlpha=0.2;
+
+			context.beginPath();
+			context.strokeStyle="green"; 
+			context.moveTo(-50, 0);
+			context.lineTo(50, 0);
+			context.moveTo(0, 50);
+			context.lineTo(0, -50);
+			context.closePath();
+			context.stroke();
+			
+			context.globalAlpha=1;
+			
+			context.beginPath();
+			context.strokeStyle="darkblue"; 
+			var messagePosition = camera.position.x + "," + camera.position.z;
+			var camCos = Math.cos(camera.rotation);
+			var camSin = -Math.sin(camera.rotation);
+			var vectorCam = {x:camCos*30,y:camSin*30};
+			drawArrow(context,camera.position.x,camera.position.z,camera.position.x+vectorCam.x,camera.position.z+vectorCam.y);
+			context.fillText(messagePosition+" * " + Math.floor(camera.rotation * 180 / Math.PI) +" °", camera.position.x + 30, camera.position.z -30);
+			context.closePath();
+			context.stroke();
+	}
+}
 // primitive,size,distance,altitude,angleToOrigine,rotation,name
 function Square(size,distance,angleToOrigine,name){
 	this.size = size;
@@ -174,8 +210,9 @@ function Square(size,distance,angleToOrigine,name){
 		var self = this;
 			self.positionRelative.x = self.positionAbsolute.x;
 			self.positionRelative.y = self.positionAbsolute.y;
-			context.beginPath();
 			context.strokeStyle="black"; 
+			context.beginPath();
+			
 			context.moveTo(self.positionRelative.x-self.half, self.positionRelative.y-self.half);
 			context.rect(self.positionRelative.x-self.half,self.positionRelative.y-self.half,self.half,self.half);
 			var message = self.name;
@@ -191,30 +228,9 @@ function Square(size,distance,angleToOrigine,name){
 			context.closePath();
 			context.stroke();
 			
-			context.globalAlpha=0.2;
-
-			context.beginPath();
-			context.strokeStyle="green"; 
-			context.moveTo(-50, 0);
-			context.lineTo(50, 0);
-			context.moveTo(0, 50);
-			context.lineTo(0, -50);
-			context.closePath();
-			context.stroke();
-			
 			context.globalAlpha=1;
 			
-			context.beginPath();
-			context.strokeStyle="darkblue"; 
-			//context.arc(0, 0, 2, 0, Math.PI * 2, true);
-			var messagePosition = camera.position.x + "," + camera.position.z;
-			var camCos = Math.cos(camera.rotation);
-			var camSin = -Math.sin(camera.rotation);
-			var vectorCam = {x:camCos*30,y:camSin*30};
-			drawArrow(context,camera.position.x,camera.position.z,camera.position.x+vectorCam.x,camera.position.z+vectorCam.y);
-			context.fillText(messagePosition+" * " + Math.floor(camera.rotation * 180 / Math.PI) +" °", camera.position.x + 30, camera.position.z -30);
-			context.closePath();
-			context.stroke();
+
 	}
 }
 
@@ -443,20 +459,16 @@ function calcAngleRadians(x, y) { // origine : calcAngleDegrees
 	document.addEventListener("keydown", function(event) {
 		switch(event.keyCode) {
 			case 37: // left ctrlKey shiftKey
-				needUpdate = true;
 				camera.turn(-1);
 				break;
 			case 39: // right
-				needUpdate = true;
 				camera.turn(1);
 				break;
 			case 38: // up
 			    camera.walk(1);
-				needUpdate = true;
 				break;
 			case 40: // down
 				camera.walk(-1);
-				needUpdate = true;
 				break;
 		}
 	}); 
