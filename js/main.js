@@ -15,10 +15,8 @@ init();
 var elem = document.getElementsByName("mode");
 for (var i = 0; i < elem.length; i++) {
     elem[i].addEventListener('click', function(){
-		
 		if(this.checked){
 			mode = this.value;
-				console.log(mode);
 		}
 	}, false);
 
@@ -163,8 +161,16 @@ function Camera(rotStep,walkStep,rotation) {
 	this.draw = function(){
 		
 		// Cross for the origin
-			context.globalAlpha=0.2;
+		if(mode=="static"){
+			this.drawStatic();
+		}else if(mode=="dynamic"){
+			this.drawDynamic();
+		}
 
+	}
+	
+	this.drawStatic = function(){
+			context.globalAlpha=0.2;
 			context.beginPath();
 			context.strokeStyle="green"; 
 			context.moveTo(-50, 0);
@@ -184,6 +190,48 @@ function Camera(rotStep,walkStep,rotation) {
 			var vectorCam = {x:camCos*30,y:camSin*30};
 			drawArrow(context,camera.position.x,camera.position.z,camera.position.x+vectorCam.x,camera.position.z+vectorCam.y);
 			context.fillText(messagePosition+" * " + Math.floor(camera.rotation * 180 / Math.PI) +" °", camera.position.x + 30, camera.position.z -30);
+			context.closePath();
+			context.stroke();
+	}
+	
+	this.drawDynamic = function(){
+		
+			var camCos = Math.cos(camera.rotation);
+			var camSin = -Math.sin(camera.rotation);
+			
+			var vectorCam = {x:camCos*50,y:camSin*50};
+			
+			var west = simpleRotate(vectorCam,k90degres);
+			var east = simpleRotate(vectorCam,-k90degres);
+			var north = vectorCam;
+			var south = simpleRotate(vectorCam,-k180degres);
+			
+			context.globalAlpha=0.5;
+			context.beginPath();
+			context.strokeStyle="green"; 
+			
+			context.moveTo(west.x, west.y);
+			context.lineTo(east.x, east.y);
+			context.moveTo(north.x, north.y);
+			context.lineTo(south.x, south.y);
+			
+			context.fillText("W",west.x-5, west.y);
+			context.fillText("E",east.x-5, east.y);
+			context.fillText("N",north.x-5, north.y);
+			context.fillText("S",south.x-5, south.y);
+			
+			context.closePath();
+			context.stroke();
+			
+			context.globalAlpha=1;
+			context.beginPath();
+			context.strokeStyle="darkblue"; 
+			var messagePosition = camera.position.x + "," + camera.position.z;
+	
+			vectorCam = {x:0,y:-30};
+			
+			drawArrow(context,0,0,vectorCam.x,vectorCam.y);
+			context.fillText(messagePosition+" * " + Math.floor(camera.rotation * 180 / Math.PI) +" °", 30, -30);
 			context.closePath();
 			context.stroke();
 	}
@@ -207,6 +255,12 @@ function Square(size,distance,angleToOrigine,name){
 	this.positionAbsolute.y = Math.floor(sin*distance);
 
 	this.draw = function(){
+		
+/* 		if(mode=="static"){
+			this.drawStatic();
+		}else if(mode=="dynamic"){
+			this.drawDynamic();
+		} */
 		var self = this;
 			self.positionRelative.x = self.positionAbsolute.x;
 			self.positionRelative.y = self.positionAbsolute.y;
@@ -401,9 +455,14 @@ function drawPoly(context,points,poly){
 	context.lineTo(points[poly[0]].x, points[poly[0]].y);
 
 }
-function simpleRotate(item,angle){
-	rotatedX = x * cos(angle) - y * sin(angle)
-   rotatedY = y * cos(angle) + x * sin(angle)
+
+
+function simpleRotate(point,angle){
+	var cos = Math.cos(angle);
+	var sin = -Math.sin(angle);
+	rotatedX = point.x * cos - point.y * sin;
+    rotatedY = point.y * cos + point.x * sin;
+	return {"x":rotatedX,"y":rotatedY}
 }
 
 function calcRotationGivenAdjacentSide(adjacent, hypotenuse){
