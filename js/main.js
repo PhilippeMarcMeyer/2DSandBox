@@ -12,12 +12,19 @@ window.onload = function() {
 	var mode = "static";
 init();
 
-var elem = document.getElementsByName("mode");
+var elem = document.getElementsByClassName("mode");
 for (var i = 0; i < elem.length; i++) {
     elem[i].addEventListener('click', function(){
-		if(this.checked){
-			mode = this.value;
+		mode = this.id;
+		var all = document.getElementsByClassName("mode");
+		for(var j=0;j<all.length;j++){
+			if(all[j].id == mode){
+				all[j].setAttribute("class", "mode chosen");
+			}else{
+				all[j].setAttribute("class", "mode");
+			}
 		}
+		
 	}, false);
 
 }
@@ -41,11 +48,11 @@ for (var i = 0; i < elem.length; i++) {
 		angleToOrigine += angleDiff;
 	}
 */
-things.push(new Square(10,100,k90degres,"A"));
+things.push(new Square(30,100,k90degres,"A"));
 
-things.push(new Square(10,140,k90degres-0.2,"B"));
+things.push(new Square(30,140,k90degres-0.2,"B"));
 
-things.push(new Square(10,250,k180degres-0.5,"C"));
+things.push(new Square(30,250,k180degres-0.5,"C"));
 
 	update();
 
@@ -54,7 +61,7 @@ function init(){
 	
 	width = canvas.width = window.innerWidth;
 	height = canvas.height = window.innerHeight;
-	fov = width;
+	fov = 256;
 	w2 = width/2;
 	h2 = height/2;
 	k90degres = toradians(90);
@@ -62,6 +69,9 @@ function init(){
 	k180degres = toradians(180);
 	k270degres = toradians(270);
 	k360degres = toradians(360);
+	
+	k80degres = toradians(80);
+	k280degres = toradians(280);
 	context.translate(width / 2, height / 2);
 
 }
@@ -135,6 +145,24 @@ bz=bz/len;
 return ax*bx+ay*by+az*bz;
 }
 
+function scalarProduct2D(a,b){
+var ax=a.x;
+var ay=a.y;
+var bx=b.x;
+var by=b.y;
+
+var len =  Math.sqrt(ax*ax+ay*ay);
+ax=ax/len;
+ay=ay/len;
+
+len =  Math.sqrt(bx*bx+by*by);
+bx=bx/len;
+by=by/len;
+
+
+return ax*bx+ay*by;
+}
+
 function hypo(x,y,z){
 return Math.sqrt(x*x+y*y+z*z);
 }
@@ -160,13 +188,14 @@ function Camera(rotStep,walkStep,rotation) {
 	}
 	this.draw = function(){
 		
-		// Cross for the origin
 		if(mode=="static"){
 			this.drawStatic();
 		}else if(mode=="dynamic"){
 			this.drawDynamic();
+		} else if (mode=="3d"){
+			this.draw3D();
 		}
-
+			
 	}
 	
 	this.drawStatic = function(){
@@ -235,6 +264,9 @@ function Camera(rotStep,walkStep,rotation) {
 			context.closePath();
 			context.stroke();
 	}
+	
+	this.draw3D = function(){
+	}
 }
 // primitive,size,distance,altitude,angleToOrigine,rotation,name
 function Square(size,distance,angleToOrigine,name){
@@ -245,23 +277,33 @@ function Square(size,distance,angleToOrigine,name){
 	this.positionAbsolute = {x:0,y:0};
 	this.positionRelative = {x:0,y:0};
 	this.half = Math.floor(size/2);
+	this.geometry = new Cube(); // only for 3D
 	
 	var cos = Math.cos(this.angleToOrigine);
 	var sin = -Math.sin(this.angleToOrigine);
 	
 	
-	
+	// the real position according to origin point
 	this.positionAbsolute.x = Math.floor(cos*distance);
 	this.positionAbsolute.y = Math.floor(sin*distance);
 
+	
+	
 	this.draw = function(){
 		
-/* 		if(mode=="static"){
+		if(mode=="static"){
 			this.drawStatic();
 		}else if(mode=="dynamic"){
 			this.drawDynamic();
-		} */
-		var self = this;
+		} else if (mode=="3d"){
+			this.draw3D();
+		}
+			
+
+	}
+	this.drawStatic = function(){
+		// the camera moves : the objects stay stationnary so the positionRelative == positionAbsolute
+			var self = this;
 			self.positionRelative.x = self.positionAbsolute.x;
 			self.positionRelative.y = self.positionAbsolute.y;
 			context.strokeStyle="black"; 
@@ -283,8 +325,127 @@ function Square(size,distance,angleToOrigine,name){
 			context.stroke();
 			
 			context.globalAlpha=1;
+	}
+	
+		this.drawDynamic = function(){
+			// the camera does not move : everything rotate around
+			var self = this;
+			// We have to calculate the relative position with cemera rotation and camera position
+			var x = self.positionAbsolute.x;
+			var y = self.positionAbsolute.y;
 			
+			var diffX = x-camera.position.x;
+			var diffY = y-camera.position.z;
+			
+			var dist =  Math.sqrt(diffX*diffX+diffY*diffY);
+			if (dist < 1 ) dist = 1;
+			var camCos = Math.cos(camera.rotation);
+			var camSin = -Math.sin(camera.rotation);
+			
+			var vectorCam = {x:camCos,y:camSin};
+			var vectorObjet	= {x:x/dist,y:y/dist};
+			
+			var angleCam = keepWithInCircle(calcAngleRadians(vectorCam.x,vectorCam.y));
+			var angleObjet	= keepWithInCircle(calcAngleRadians(vectorObjet.x,vectorObjet.y));			
+			var relativeAngle =  keepWithInCircle(angleCam - angleObjet);
+			
+			//var dot = scalarProduct2D(vectorCam,vectorObjet);
+			
+			if(relativeAngle <=k80degres || relativeAngle >= k280degres){
+				//var angle = Math.acos(dot)+k90degres;
+				
+				var objCos = Math.cos(relativeAngle+k90degres);
+				var objSin = -Math.sin(relativeAngle+k90degres);
+				
+				self.positionRelative.x = objCos*dist;
+				self.positionRelative.y = objSin*dist;
+				
+				context.strokeStyle="black"; 
+				context.beginPath();
+				
+				context.moveTo(self.positionRelative.x-self.half, self.positionRelative.y-self.half);
+				context.rect(self.positionRelative.x-self.half,self.positionRelative.y-self.half,self.half,self.half);
+				var message = self.name+" angle="+ Math.floor(relativeAngle* 180 / Math.PI);
+				context.fillText(message, self.positionRelative.x+5, self.positionRelative.y-5);
+				context.closePath();
+				context.stroke();
+				
+				context.globalAlpha=0.8;
 
+				context.beginPath();
+				context.strokeStyle="red"; 
+				context.arc(0, 0, dist, 0, Math.PI * 2, true);
+				context.closePath();
+				context.stroke();
+			}else{
+				
+				context.globalAlpha=0.4;
+
+				context.beginPath();
+				context.strokeStyle="grey"; 
+				context.arc(0, 0, dist, 0, Math.PI * 2, true);
+				context.closePath();
+				context.stroke();	
+				
+			}
+			context.globalAlpha=1;
+	}
+	
+			this.draw3D = function(){
+			// the camera does not move : everything rotate around
+			var self = this;
+			// We have to calculate the relative position with cemera rotation and camera position
+			var x = self.positionAbsolute.x;
+			var y = self.positionAbsolute.y;
+			
+			var diffX = x-camera.position.x;
+			var diffY = y-camera.position.z;
+			
+			var dist =  Math.sqrt(diffX*diffX+diffY*diffY);
+			if (dist < 1 ) dist = 1;
+			var camCos = Math.cos(camera.rotation);
+			var camSin = -Math.sin(camera.rotation);
+			
+			var vectorCam = {x:camCos,y:camSin};
+			var vectorObjet	= {x:x/dist,y:y/dist};
+			
+			var angleCam = keepWithInCircle(calcAngleRadians(vectorCam.x,vectorCam.y));
+			var angleObjet	= keepWithInCircle(calcAngleRadians(vectorObjet.x,vectorObjet.y));			
+			var relativeAngle =  keepWithInCircle(angleCam - angleObjet);
+			
+			//var dot = scalarProduct2D(vectorCam,vectorObjet);
+			
+			if(relativeAngle <=k80degres || relativeAngle >= k280degres){
+				//var angle = Math.acos(dot)+k90degres;
+				
+				var objCos = Math.cos(relativeAngle+k90degres);
+				var objSin = -Math.sin(relativeAngle+k90degres);
+				
+				self.positionRelative.x = objCos*dist;
+				self.positionRelative.y = objSin*dist;
+				
+				var points = self.geometry.data.map(function(arr){
+					return {"x":(arr[0]*size)+self.positionRelative.x,"y":arr[1]*size,"z":(arr[2]*size)+self.positionRelative.y};
+				});
+			points = doRotate(points,relativeAngle,0,0);
+				var points2D = [];
+				
+				points.forEach(function(point){
+					var scale=fov/(fov-point.z);
+					var x = Math.floor(point.x*scale);
+					var y = Math.floor(point.z*scale);
+					points2D.push({"x":x,"y":y});
+				});
+			context.beginPath();
+			context.strokeStyle="darkred"; 
+			for(var i = 0;i < self.geometry.poly.length;i++){
+				var polyPoints = self.geometry.poly[i];
+				drawPoly(context,points2D,polyPoints);
+				context.stroke();
+				context.strokeStyle="black"; 
+			}
+
+			}
 	}
 }
 
