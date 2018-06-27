@@ -8,7 +8,7 @@ window.onload = function() {
 	var canvas = document.getElementById("canvas");
 	var	context = canvas.getContext("2d");
 	var things = [];
-	var camera = new Camera(0.1,5,toradians(90));
+	var camera = new Camera(0.05,2,toradians(90));
 	var mode = "static";
 init();
 
@@ -61,17 +61,24 @@ function init(){
 	
 	width = canvas.width = window.innerWidth;
 	height = canvas.height = window.innerHeight;
-	fov = 256;
 	w2 = width/2;
 	h2 = height/2;
 	k90degres = toradians(90);
+	k60degres = toradians(60);
 	k45degres = toradians(45);
 	k180degres = toradians(180);
 	k270degres = toradians(270);
 	k360degres = toradians(360);
-	
 	k80degres = toradians(80);
 	k280degres = toradians(280);
+	
+	camFov = k45degres;
+	focalW = w2 / Math.tan(camFov/2);
+	focalH = h2 / Math.tan(camFov/2);
+	zoom = 4;
+	focalAverage = (focalW + focalH)/2;
+	
+
 	context.translate(width / 2, height / 2);
 
 }
@@ -170,6 +177,8 @@ return Math.sqrt(x*x+y*y+z*z);
 function Camera(rotStep,walkStep,rotation) {
 	this.rotation = rotation ? rotation : 0; 
 	this.position = {x:0,y:0,z:0};
+	this.sightWidth = toradians(120);
+	this.sightLength = 200;
 	this.walkStep = walkStep;
 	this.rotStep = rotStep;
 	this.turn = function(amount){ // -1 or +1
@@ -199,13 +208,31 @@ function Camera(rotStep,walkStep,rotation) {
 	}
 	
 	this.drawStatic = function(){
-			context.globalAlpha=0.2;
+			context.globalAlpha=0.4;
 			context.beginPath();
 			context.strokeStyle="green"; 
-			context.moveTo(-50, 0);
-			context.lineTo(50, 0);
-			context.moveTo(0, 50);
-			context.lineTo(0, -50);
+			
+			var camCos = Math.cos(k90degres);
+			var camSin = -Math.sin(k90degres);
+			
+			var vectorCam = {x:camCos*50,y:camSin*50};
+			
+			var west = simpleRotate(vectorCam,k90degres);
+			var east = simpleRotate(vectorCam,-k90degres);
+			var north = vectorCam;
+			var south = simpleRotate(vectorCam,-k180degres);
+			
+			context.moveTo(west.x, west.y);
+			context.lineTo(east.x, east.y);
+			context.moveTo(north.x, north.y);
+			context.lineTo(south.x, south.y);
+			
+			
+			context.fillText("W",west.x-5, west.y);
+			context.fillText("E",east.x-5, east.y);
+			context.fillText("N",north.x-5, north.y);
+			context.fillText("S",south.x-5, south.y);
+			
 			context.closePath();
 			context.stroke();
 			
@@ -218,9 +245,37 @@ function Camera(rotStep,walkStep,rotation) {
 			var camSin = -Math.sin(camera.rotation);
 			var vectorCam = {x:camCos*30,y:camSin*30};
 			drawArrow(context,camera.position.x,camera.position.z,camera.position.x+vectorCam.x,camera.position.z+vectorCam.y);
+			
 			context.fillText(messagePosition+" * " + Math.floor(camera.rotation * 180 / Math.PI) +" °", camera.position.x + 30, camera.position.z -30);
+					context.closePath();
+			context.stroke();
+
+			context.globalAlpha=0.2;
+			context.beginPath();
+			var rotationLeftLimit = camera.rotation-this.sightWidth/2;
+			var rotationRightLimit = camera.rotation+this.sightWidth/2;
+
+			context.strokeStyle="darkgreen"; 
+	
+			for(var i = rotationLeftLimit;i < rotationRightLimit;i+=0.1){
+				context.moveTo(camera.position.x, camera.position.z);
+				camCos = Math.cos(i);
+				camSin = -Math.sin(i);
+				var ray= {x:camCos*this.sightLength,y:camSin*this.sightLength};
+				context.lineTo(camera.position.x+ray.x,camera.position.z+ray.y);
+			}
+
+			//context.arc(camera.position.x, camera.position.z, this.sightLength, rotationLeftLimit, rotationRightLimit,true);
+   		    camCos = Math.cos(0);
+			camSin = -Math.sin(0);
+			context.moveTo(camera.position.x+camCos*this.sightLength, camera.position.z+camSin*this.sightLength);
+			context.arc(camera.position.x, camera.position.z, this.sightLength, 0, Math.PI*2,false);
 			context.closePath();
 			context.stroke();
+	context.globalAlpha=1;
+			//context.moveTo(camera.position.x, camera.position.z);
+			//context.arc(camera.position.x, camera.position.z, this.sightLength, rotationLeftLimit, rotationRightLimit,true);
+
 	}
 	
 	this.drawDynamic = function(){
@@ -337,11 +392,13 @@ function Square(size,distance,angleToOrigine,name){
 			var diffX = x-camera.position.x;
 			var diffY = y-camera.position.z;
 			
-			var dist =  Math.sqrt(diffX*diffX+diffY*diffY);
+			var dist =  Math.floor(0.5+Math.sqrt(diffX*diffX+diffY*diffY));
 			if (dist < 1 ) dist = 1;
 			var camCos = Math.cos(camera.rotation);
 			var camSin = -Math.sin(camera.rotation);
 			
+			var objectToCam = {"x":(camera.position.x-x)/dist,"y":(y-self.positionAbsolute.y)/dist};
+
 			var vectorCam = {x:camCos,y:camSin};
 			var vectorObjet	= {x:x/dist,y:y/dist};
 			
@@ -349,7 +406,7 @@ function Square(size,distance,angleToOrigine,name){
 			var angleObjet	= keepWithInCircle(calcAngleRadians(vectorObjet.x,vectorObjet.y));			
 			var relativeAngle =  keepWithInCircle(angleCam - angleObjet);
 			
-			//var dot = scalarProduct2D(vectorCam,vectorObjet);
+			var dot = scalarProduct2D(vectorCam,objectToCam);
 			
 			if(relativeAngle <=k80degres || relativeAngle >= k280degres){
 				//var angle = Math.acos(dot)+k90degres;
@@ -365,7 +422,7 @@ function Square(size,distance,angleToOrigine,name){
 				
 				context.moveTo(self.positionRelative.x-self.half, self.positionRelative.y-self.half);
 				context.rect(self.positionRelative.x-self.half,self.positionRelative.y-self.half,self.half,self.half);
-				var message = self.name+" angle="+ Math.floor(relativeAngle* 180 / Math.PI);
+				var message = self.name+" angle="+ Math.floor(relativeAngle* 180 / Math.PI)+" dist=" +dist+" dot="+dot;
 				context.fillText(message, self.positionRelative.x+5, self.positionRelative.y-5);
 				context.closePath();
 				context.stroke();
@@ -401,7 +458,7 @@ function Square(size,distance,angleToOrigine,name){
 			var diffX = x-camera.position.x;
 			var diffY = y-camera.position.z;
 			
-			var dist =  Math.sqrt(diffX*diffX+diffY*diffY);
+			var dist =  Math.floor(0.5+Math.sqrt(diffX*diffX+diffY*diffY));
 			if (dist < 1 ) dist = 1;
 			var camCos = Math.cos(camera.rotation);
 			var camSin = -Math.sin(camera.rotation);
@@ -415,9 +472,10 @@ function Square(size,distance,angleToOrigine,name){
 			
 			//var dot = scalarProduct2D(vectorCam,vectorObjet);
 			
+	
 			if(relativeAngle <=k80degres || relativeAngle >= k280degres){
 				//var angle = Math.acos(dot)+k90degres;
-				
+				var dontShow = false;
 				var objCos = Math.cos(relativeAngle+k90degres);
 				var objSin = -Math.sin(relativeAngle+k90degres);
 				
@@ -425,26 +483,31 @@ function Square(size,distance,angleToOrigine,name){
 				self.positionRelative.y = objSin*dist;
 				
 				var points = self.geometry.data.map(function(arr){
-					return {"x":(arr[0]*size)+self.positionRelative.x,"y":arr[1]*size,"z":(arr[2]*size)+self.positionRelative.y};
+					return {"x":arr[0],"y":arr[1],"z":arr[2]};
 				});
-			points = doRotate(points,relativeAngle,0,0);
+				
+				points = doRotate(points,relativeAngle,0,0);
+				
 				var points2D = [];
 				
 				points.forEach(function(point){
-					var scale=fov/(fov-point.z);
-					var x = Math.floor(point.x*scale);
-					var y = Math.floor(point.z*scale);
+					point.x = point.x *size +self.positionRelative.x;
+					point.y = point.y *size;
+					point.z = point.z *size +self.positionRelative.y;
+					if(point.z < 5) dontShow;
+
+					var x = Math.floor((point.x*w2)/(dist-point.z));
+					var y = Math.floor((point.y*w2)/(dist-point.z));
 					points2D.push({"x":x,"y":y});
 				});
-			context.beginPath();
-			context.strokeStyle="darkred"; 
-			for(var i = 0;i < self.geometry.poly.length;i++){
-				var polyPoints = self.geometry.poly[i];
-				drawPoly(context,points2D,polyPoints);
-				context.stroke();
-				context.strokeStyle="black"; 
-			}
-
+					context.beginPath();
+					context.strokeStyle="darkred"; 
+					for(var i = 0;i < self.geometry.poly.length;i++){
+						var polyPoints = self.geometry.poly[i];
+						drawPoly(context,points2D,polyPoints);
+						context.stroke();
+						context.strokeStyle="black"; 
+					}
 			}
 	}
 }
