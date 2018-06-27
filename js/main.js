@@ -256,20 +256,43 @@ function Camera(rotStep,walkStep,rotation) {
 			var rotationRightLimit = camera.rotation+this.sightWidth/2;
 
 			context.strokeStyle="darkgreen"; 
-	
-			for(var i = rotationLeftLimit;i < rotationRightLimit;i+=0.1){
-				context.moveTo(camera.position.x, camera.position.z);
+			var ray;
+			things.forEach(function(x){
+				x.hit = false;;
+			});
+			for(var i = rotationLeftLimit;i <= rotationRightLimit;i+=0.05){
+				var start = {"x":camera.position.x,"y":camera.position.z};
+				context.moveTo(start.x, start.y);
 				camCos = Math.cos(i);
 				camSin = -Math.sin(i);
-				var ray= {x:camCos*this.sightLength,y:camSin*this.sightLength};
-				context.lineTo(camera.position.x+ray.x,camera.position.z+ray.y);
-			}
+				ray= {x:camCos*this.sightLength,y:camSin*this.sightLength};
+				var end = {"x":start.x+ray.x,"y":start.y+ray.y};
 
-			//context.arc(camera.position.x, camera.position.z, this.sightLength, rotationLeftLimit, rotationRightLimit,true);
+				context.lineTo(end.x,end.y);
+				things.forEach(function(x){
+					if(collideLineRect(start.x,start.y,end.x,end.y,x.left,x.top,x.size,x.size)){
+						x.hit = true;
+					}
+				});
+			}
+				context.moveTo(camera.position.x, camera.position.z);
+				camCos = Math.cos(rotationRightLimit);
+				camSin = -Math.sin(rotationRightLimit);
+				ray= {x:camCos*this.sightLength,y:camSin*this.sightLength};
+				context.lineTo(camera.position.x+ray.x,camera.position.z+ray.y);
+					context.closePath();
+			context.stroke();
+/*
    		    camCos = Math.cos(0);
 			camSin = -Math.sin(0);
 			context.moveTo(camera.position.x+camCos*this.sightLength, camera.position.z+camSin*this.sightLength);
 			context.arc(camera.position.x, camera.position.z, this.sightLength, 0, Math.PI*2,false);
+			*/
+			context.beginPath();
+			//context.moveTo(camera.position.x+ray.x, camera.position.z+ray.y);
+			context.moveTo(camera.position.x, camera.position.z);
+			context.arc(camera.position.x, camera.position.z, this.sightLength, -rotationRightLimit, -rotationLeftLimit,false);
+			
 			context.closePath();
 			context.stroke();
 	context.globalAlpha=1;
@@ -333,6 +356,8 @@ function Square(size,distance,angleToOrigine,name){
 	this.positionRelative = {x:0,y:0};
 	this.half = Math.floor(size/2);
 	this.geometry = new Cube(); // only for 3D
+	this.hit = false;
+	
 	
 	var cos = Math.cos(this.angleToOrigine);
 	var sin = -Math.sin(this.angleToOrigine);
@@ -342,8 +367,9 @@ function Square(size,distance,angleToOrigine,name){
 	this.positionAbsolute.x = Math.floor(cos*distance);
 	this.positionAbsolute.y = Math.floor(sin*distance);
 
-	
-	
+	this.left = this.positionAbsolute.x - this.size / 2;
+	this.top = this.positionAbsolute.y - this.size / 2;
+
 	this.draw = function(){
 		
 		if(mode=="static"){
@@ -362,15 +388,25 @@ function Square(size,distance,angleToOrigine,name){
 			self.positionRelative.x = self.positionAbsolute.x;
 			self.positionRelative.y = self.positionAbsolute.y;
 			context.strokeStyle="black"; 
+			var saveColor = context.fillStyle;
 			context.beginPath();
 			
 			context.moveTo(self.positionRelative.x-self.half, self.positionRelative.y-self.half);
 			context.rect(self.positionRelative.x-self.half,self.positionRelative.y-self.half,self.half,self.half);
 			var message = self.name;
 			context.fillText(message, self.positionRelative.x+5, self.positionRelative.y-5);
+			if(self.hit){
+				
+				context.fillStyle="red"; 
+			}
 			context.closePath();
 			context.stroke();
-			
+			if(self.hit){
+				context.fillStyle="red"; 
+				context.fill();
+
+			}
+			context.fillStyle=saveColor; 
 			context.globalAlpha=0.8;
 
 			context.beginPath();
@@ -759,4 +795,38 @@ function calcAngleRadians(x, y) { // origine : calcAngleDegrees
 	window.onresize = function(event) {
 		init();
 	};
+	
+	// From p5.collide2d.js !!!!! as I don't use p5.js yet 
+function collideLineLine(x1, y1, x2, y2, x3, y3, x4, y4) {
+
+  // calculate the distance to intersection point
+  var uA = ((x4-x3)*(y1-y3) - (y4-y3)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
+  var uB = ((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
+
+  // if uA and uB are between 0-1, lines are colliding
+  if (uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1) {
+		return true;
+  }else{
+	  return false;
+	  }
+
+}
+
+function collideLineRect(x1, y1, x2, y2, rx, ry, rw, rh) {
+
+  // check if the line has hit any of the rectangle's sides. uses the collideLineLine function above
+  var left, right, top, bottom, intersection;
+
+     left =   collideLineLine(x1,y1,x2,y2, rx,ry,rx, ry+rh);
+     right =  collideLineLine(x1,y1,x2,y2, rx+rw,ry, rx+rw,ry+rh);
+     top =    collideLineLine(x1,y1,x2,y2, rx,ry, rx+rw,ry);
+     bottom = collideLineLine(x1,y1,x2,y2, rx,ry+rh, rx+rw,ry+rh);
+
+  // if ANY of the above are true, the line has hit the rectangle
+  if (left || right || top || bottom) {
+    return true;
+  }
+  return false;
+}
+
 }
