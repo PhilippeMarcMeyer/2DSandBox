@@ -48,11 +48,15 @@ for (var i = 0; i < elem.length; i++) {
 		angleToOrigine += angleDiff;
 	}
 */
-things.push(new Square(30,100,k90degres,"A"));
+things.push(new Square(30,100,k90degres,0.5,"A"));
 
-things.push(new Square(30,140,k90degres-0.2,"B"));
+things.push(new Square(30,140,k90degres-0.4,0.25,"B"));
 
-things.push(new Square(30,250,k180degres-0.5,"C"));
+things.push(new Square(30,250,k180degres-0.5,0.1,"C"));
+
+things.push(new Square(45,185,k180degres+1,.3,"D"));
+
+things.push(new Square(22,220,0.9,.3,"E"));
 
 	update();
 
@@ -112,16 +116,22 @@ function todegrees(radians) {
 
 
 function Cube(){
-	this.data = [
-		[-1,-1,-1],
-		[1,-1,-1],
-		[1, 1,-1],
-		[-1, 1,-1],
-		[1,-1, 1],
-		[-1,-1, 1],
-		[-1, 1, 1],
-		[1, 1, 1]
-	];
+this.data2D = {
+	"topLeft": {"x":-1,"y":-1},
+	"topRight": {"x":1,"y":-1},
+	"bottomLeft": {"x":-1,"y":1},
+	"bottomRight": {"x":1,"y":1}
+}
+this.data = [
+	[-1,-1,-1],
+	[1,-1,-1],
+	[1, 1,-1],
+	[-1, 1,-1],
+	[1,-1, 1],
+	[-1,-1, 1],
+	[-1, 1, 1],
+	[1, 1, 1]
+];
 this.poly=[];
 this.poly[0]=[0,1,2,3];
 this.poly[1]=[1,4,7,2];
@@ -208,10 +218,34 @@ function Camera(rotStep,walkStep,rotation) {
 	}
 	
 	this.drawStatic = function(){
+			things.forEach(function(x){
+				if(x.hit){
+					var nrHits = x.hitAngles.length;
+					if(nrHits==0){
+						x.hit = false;
+					}else if(nrHits==1){
+						x.hitMiddleAngle = x.hitAngles[0];
+					}else{
+						x.hitMiddleAngle = x.hitAngles[Math.floor((nrHits-1)/2)];
+					}
+				}
+						var alpha = 1-(x.distance/200);
+							if(alpha < 0.1) alpha= 0.1;
+							context.globalAlpha=alpha;
+							context.beginPath();
+							context.strokeStyle="black"; 
+							context.fillStyle="rgb(20,230,160)"; 
+							context.arc(0, 0, x.distance, 0, Math.PI * 2, true);
+							context.closePath();
+							context.stroke();
+							context.fill();
+			
+			});
+
 			context.globalAlpha=0.4;
 			context.beginPath();
 			context.strokeStyle="green"; 
-			
+			context.fillStyle="white"; 
 			var camCos = Math.cos(k90degres);
 			var camSin = -Math.sin(k90degres);
 			
@@ -222,17 +256,22 @@ function Camera(rotStep,walkStep,rotation) {
 			var north = vectorCam;
 			var south = simpleRotate(vectorCam,-k180degres);
 			
+			
+			context.beginPath();
+			context.strokeStyle="black"; 
 			context.moveTo(west.x, west.y);
 			context.lineTo(east.x, east.y);
 			context.moveTo(north.x, north.y);
 			context.lineTo(south.x, south.y);
-			
-			
+			context.closePath();
+			context.stroke();
+
+			context.beginPath();
+			context.fillStyle="black";
 			context.fillText("W",west.x-5, west.y);
 			context.fillText("E",east.x-5, east.y);
 			context.fillText("N",north.x-5, north.y);
 			context.fillText("S",south.x-5, south.y);
-			
 			context.closePath();
 			context.stroke();
 			
@@ -245,9 +284,8 @@ function Camera(rotStep,walkStep,rotation) {
 			var camSin = -Math.sin(camera.rotation);
 			var vectorCam = {x:camCos*30,y:camSin*30};
 			drawArrow(context,camera.position.x,camera.position.z,camera.position.x+vectorCam.x,camera.position.z+vectorCam.y);
-			
 			context.fillText(messagePosition+" * " + Math.floor(camera.rotation * 180 / Math.PI) +" °", camera.position.x + 30, camera.position.z -30);
-					context.closePath();
+			context.closePath();
 			context.stroke();
 
 			context.globalAlpha=0.2;
@@ -258,23 +296,46 @@ function Camera(rotStep,walkStep,rotation) {
 			context.strokeStyle="darkgreen"; 
 			var ray;
 			things.forEach(function(x){
-				x.hit = false;;
+				x.hit = false;
+				x.hitAngles.length = 0;
 			});
+			var relativeAngle = - this.sightWidth/2;
+			var step = 0.05;
 			for(var i = rotationLeftLimit;i <= rotationRightLimit;i+=0.05){
+				
 				var start = {"x":camera.position.x,"y":camera.position.z};
 				context.moveTo(start.x, start.y);
 				camCos = Math.cos(i);
 				camSin = -Math.sin(i);
 				ray= {x:camCos*this.sightLength,y:camSin*this.sightLength};
 				var end = {"x":start.x+ray.x,"y":start.y+ray.y};
-
 				context.lineTo(end.x,end.y);
 				things.forEach(function(x){
-					if(collideLineRect(start.x,start.y,end.x,end.y,x.left,x.top,x.size,x.size)){
+					
+					var poly = [x.topLeft,x.topRight,x.bottomRight,x.bottomLeft,x.topLeft];
+				
+					if(collideLinePoly(start.x,start.y,end.x,end.y,poly)){
 						x.hit = true;
-					}
+						x.hitAngles.push(relativeAngle);
+					}					
 				});
+				relativeAngle += step;
 			}
+			things.forEach(function(x){
+				if(x.hit){
+					var nrHits = x.hitAngles.length;
+					if(nrHits==0){
+						x.hit = false;
+					}else if(nrHits==1){
+						x.hitMiddleAngle = x.hitAngles[0];
+					}else{
+						x.hitMiddleAngle = x.hitAngles[Math.floor((nrHits-1)/2)];
+					}
+				}
+			
+			});
+			
+			
 				context.moveTo(camera.position.x, camera.position.z);
 				camCos = Math.cos(rotationRightLimit);
 				camSin = -Math.sin(rotationRightLimit);
@@ -295,7 +356,7 @@ function Camera(rotStep,walkStep,rotation) {
 			
 			context.closePath();
 			context.stroke();
-	context.globalAlpha=1;
+			context.globalAlpha=1;
 			//context.moveTo(camera.position.x, camera.position.z);
 			//context.arc(camera.position.x, camera.position.z, this.sightLength, rotationLeftLimit, rotationRightLimit,true);
 
@@ -347,21 +408,26 @@ function Camera(rotStep,walkStep,rotation) {
 	}
 }
 // primitive,size,distance,altitude,angleToOrigine,rotation,name
-function Square(size,distance,angleToOrigine,name){
+function Square(size,distance,angleToOrigine,innerRotation,name){
 	this.size = size;
 	this.distance = distance;
 	this.angleToOrigine = angleToOrigine; 
 	this.name = name;
+	this.innerRotation = innerRotation;
 	this.positionAbsolute = {x:0,y:0};
 	this.positionRelative = {x:0,y:0};
 	this.half = Math.floor(size/2);
 	this.geometry = new Cube(); // only for 3D
 	this.hit = false;
-	
+	this.hitAngles = [];
+	this.hitMiddleAngle = 0;
 	
 	var cos = Math.cos(this.angleToOrigine);
 	var sin = -Math.sin(this.angleToOrigine);
-	
+	this.topLeft = {"x": 0,"y": 0};
+	this.topRight = {"x": 0 ,"y": 0};
+	this.bottomLeft = {"x": 0,"y": 0};
+	this.bottomRight = {"x": 0,"y": 0};
 	
 	// the real position according to origin point
 	this.positionAbsolute.x = Math.floor(cos*distance);
@@ -369,6 +435,32 @@ function Square(size,distance,angleToOrigine,name){
 
 	this.left = this.positionAbsolute.x - this.size / 2;
 	this.top = this.positionAbsolute.y - this.size / 2;
+	
+
+	
+	var geometry = this.geometry.data2D;
+	this.topLeft = {"x": geometry.topLeft.x,"y": geometry.topLeft.y};
+	this.topRight = {"x": geometry.topRight.x ,"y": geometry.topRight.y };
+	this.bottomLeft = {"x": geometry.bottomLeft.x ,"y": geometry.bottomLeft.y};
+	this.bottomRight = {"x": geometry.bottomRight.x ,"y": geometry.bottomRight.y};
+	
+	this.topLeft = simpleRotate(this.topLeft,this.innerRotation);
+	this.topRight = simpleRotate(this.topRight,this.innerRotation);
+	this.bottomLeft = simpleRotate(this.bottomLeft,this.innerRotation);
+	this.bottomRight = simpleRotate(this.bottomRight,this.innerRotation);
+	
+	this.topLeft.x = this.topLeft.x * this.half  + this.positionAbsolute.x;
+	this.topLeft.y = this.topLeft.y * this.half  + this.positionAbsolute.y;
+	
+	this.topRight.x = this.topRight.x * this.half  + this.positionAbsolute.x;
+	this.topRight.y = this.topRight.y * this.half  + this.positionAbsolute.y;
+	
+	this.bottomLeft.x = this.bottomLeft.x * this.half  + this.positionAbsolute.x;
+	this.bottomLeft.y = this.bottomLeft.y * this.half  + this.positionAbsolute.y;
+	
+	this.bottomRight.x = this.bottomRight.x * this.half  + this.positionAbsolute.x;
+	this.bottomRight.y = this.bottomRight.y * this.half  + this.positionAbsolute.y;
+			
 
 	this.draw = function(){
 		
@@ -385,35 +477,46 @@ function Square(size,distance,angleToOrigine,name){
 	this.drawStatic = function(){
 		// the camera moves : the objects stay stationnary so the positionRelative == positionAbsolute
 			var self = this;
-			self.positionRelative.x = self.positionAbsolute.x;
-			self.positionRelative.y = self.positionAbsolute.y;
+
+
 			context.strokeStyle="black"; 
-			var saveColor = context.fillStyle;
-			context.beginPath();
+			context.strokeStyle="white";
+			var saveFill= context.fillStyle;
+			var saveStroke= context.strokeStyle;
 			
-			context.moveTo(self.positionRelative.x-self.half, self.positionRelative.y-self.half);
-			context.rect(self.positionRelative.x-self.half,self.positionRelative.y-self.half,self.half,self.half);
-			var message = self.name;
-			context.fillText(message, self.positionRelative.x+5, self.positionRelative.y-5);
-			if(self.hit){
-				
-				context.fillStyle="red"; 
-			}
+
+
+			context.globalAlpha=0.8;
+			context.strokeStyle="black";
+			context.fillStyle="rgb(20,230,160)"; 
+			context.beginPath();
+			// Drawing the square
+			context.moveTo(self.topLeft.x, self.topLeft.y);
+			context.lineTo(self.topRight.x, self.topRight.y);
+			context.lineTo(self.bottomRight.x, self.bottomRight.y);
+			context.lineTo(self.bottomLeft.x, self.bottomLeft.y);
+			context.lineTo(self.topLeft.x, self.topLeft.y);
+
 			context.closePath();
 			context.stroke();
 			if(self.hit){
 				context.fillStyle="red"; 
 				context.fill();
+				context.fillStyle=saveFill; 
+				context.fillText(Math.floor(todegrees(self.hitMiddleAngle))+" °", self.topRight.x+2, self.topRight.y-2);
 
+				
 			}
-			context.fillStyle=saveColor; 
-			context.globalAlpha=0.8;
+			
+			context.fillStyle=saveFill;
 
+			
 			context.beginPath();
-			context.strokeStyle="red"; 
-			context.arc(0, 0, self.distance, 0, Math.PI * 2, true);
-			context.closePath();
-			context.stroke();
+			context.strokeStyle=saveStroke; 
+			context.fillText(self.name, self.positionAbsolute.x-2, self.positionAbsolute.y+2);
+			
+			
+			context.fill();
 			
 			context.globalAlpha=1;
 	}
@@ -826,6 +929,32 @@ function collideLineRect(x1, y1, x2, y2, rx, ry, rw, rh) {
   if (left || right || top || bottom) {
     return true;
   }
+  return false;
+}
+
+function collideLinePoly(x1, y1, x2, y2, vertices) {
+
+  // go through each of the vertices, plus the next vertex in the list
+  var next = 0;
+  for (var current=0; current<vertices.length; current++) {
+
+    // get next vertex in list if we've hit the end, wrap around to 0
+    next = current+1;
+    if (next == vertices.length) next = 0;
+
+    // get the PVectors at our current position extract X/Y coordinates from each
+    var x3 = vertices[current].x;
+    var y3 = vertices[current].y;
+    var x4 = vertices[next].x;
+    var y4 = vertices[next].y;
+
+    // do a Line/Line comparison if true, return 'true' immediately and stop testing (faster)
+    var hit = collideLineLine(x1, y1, x2, y2, x3, y3, x4, y4);
+    if (hit) {
+      return true;
+    }
+  }
+  // never got a hit
   return false;
 }
 
