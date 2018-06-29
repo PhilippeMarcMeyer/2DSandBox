@@ -8,7 +8,7 @@ window.onload = function() {
 	var canvas = document.getElementById("canvas");
 	var	context = canvas.getContext("2d");
 	var things = [];
-	var camera = new Camera(0.05,2,toradians(90));
+	var camera = new Camera(0.05,10,toradians(90));
 	var mode = "static";
 init();
 
@@ -58,6 +58,8 @@ things.push(new Square(45,185,k180degres+1,.3,"D"));
 
 things.push(new Square(22,220,0.9,.3,"E"));
 
+things.push(new Square(50,450,1.5,.7,"F"));
+
 	update();
 
 	
@@ -89,7 +91,7 @@ function init(){
 
 function update() {
 		context.clearRect(-w2 , -h2, width, height);
-		context.fillStyle="white"; 
+		context.fillStyle="rgb(185,183,184)"; 
 		context.rect(-w2 , -h2, width, height);
 		context.fill();
 		context.fillStyle="black"; 
@@ -187,10 +189,14 @@ return Math.sqrt(x*x+y*y+z*z);
 function Camera(rotStep,walkStep,rotation) {
 	this.rotation = rotation ? rotation : 0; 
 	this.position = {x:0,y:0,z:0};
+	this.previousLocation = {x:0,y:0,z:0}; 
+	this.antePenultLocation = {x:0,y:0,z:0}; 
+
 	this.sightWidth = toradians(120);
 	this.sightLength = 200;
 	this.walkStep = walkStep;
 	this.rotStep = rotStep;
+	this.bodyRadius = 20;
 	this.turn = function(amount){ // -1 or +1
 		//this.rotation.x += rotAngle.x;
 		this.rotation -= this.rotStep*amount;
@@ -200,11 +206,39 @@ function Camera(rotStep,walkStep,rotation) {
 	}
 	this.walk = function(amount){// -1 or +1
 		// Calculate new position considering the amount, the position and the direction
+		//collideCirclePoly(cx, cy, diameter, vertices, interior) 
+	
+		this.savePosition();
 		var dirx = Math.cos(this.rotation);
 		var dirz = - Math.sin(this.rotation);
 		this.position.x = Math.floor(this.position.x + (dirx * amount * this.walkStep)); 
 		this.position.z = Math.floor(this.position.z + (dirz * amount * this.walkStep));
+		
+
 	}
+	this.savePosition = function(){
+		
+		this.antePenultLocation.x = this.previousLocation.x;
+		this.antePenultLocation.y = this.previousLocation.y;
+		this.antePenultLocation.z = this.previousLocation.z;
+		
+		this.previousLocation.x = this.position.x;
+		this.previousLocation.y = this.position.y;
+		this.previousLocation.z = this.position.z;
+		
+		
+	}
+	
+	this.restorePosition = function(){
+		this.position.x = this.antePenultLocation.x;
+		this.position.y = this.antePenultLocation.y;
+		this.position.z = this.antePenultLocation.z;
+		
+		this.previousLocation.x = this.antePenultLocation.x;
+		this.previousLocation.y = this.antePenultLocation.y;
+		this.previousLocation.z = this.antePenultLocation.z;
+	}
+	
 	this.draw = function(){
 		
 		if(mode=="static"){
@@ -218,29 +252,29 @@ function Camera(rotStep,walkStep,rotation) {
 	}
 	
 	this.drawStatic = function(){
+		var self = this;
 			things.forEach(function(x){
-				if(x.hit){
-					var nrHits = x.hitAngles.length;
-					if(nrHits==0){
-						x.hit = false;
-					}else if(nrHits==1){
-						x.hitMiddleAngle = x.hitAngles[0];
-					}else{
-						x.hitMiddleAngle = x.hitAngles[Math.floor((nrHits-1)/2)];
-					}
-				}
-						var alpha = 1-(x.distance/200);
-							if(alpha < 0.1) alpha= 0.1;
-							context.globalAlpha=alpha;
-							context.beginPath();
-							context.strokeStyle="black"; 
-							context.fillStyle="rgb(20,230,160)"; 
-							context.arc(0, 0, x.distance, 0, Math.PI * 2, true);
-							context.closePath();
-							context.stroke();
-							context.fill();
+				var poly = [x.topLeft,x.topRight,x.bottomRight,x.bottomLeft,x.topLeft];
+				if(collideCirclePoly(self.position.x , self.position.z, self.bodyRadius*2, poly)) {
+					self.restorePosition ();
+				}	
+
+			var alpha = 1-(x.distance/300);
+				if (alpha < 0.1) alpha = 0.1;
+				
+				context.globalAlpha=alpha;
 			
-			});
+				
+				context.beginPath();
+				context.strokeStyle="red"; 
+				context.fillStyle="darkgreen"; 
+
+				context.arc(0, 0, x.distance, 0, Math.PI * 2, true);
+				context.closePath();
+	
+				context.stroke();	
+				context.fill();				
+			}); 
 
 			context.globalAlpha=0.4;
 			context.beginPath();
@@ -284,16 +318,18 @@ function Camera(rotStep,walkStep,rotation) {
 			var camSin = -Math.sin(camera.rotation);
 			var vectorCam = {x:camCos*30,y:camSin*30};
 			drawArrow(context,camera.position.x,camera.position.z,camera.position.x+vectorCam.x,camera.position.z+vectorCam.y);
-			context.fillText(messagePosition+" * " + Math.floor(camera.rotation * 180 / Math.PI) +" °", camera.position.x + 30, camera.position.z -30);
+			context.fillText(messagePosition, camera.position.x -7, camera.position.z -this.bodyRadius/2);
+			context.fillText(Math.floor(camera.rotation * 180 / Math.PI) +" °", camera.position.x -6, camera.position.z +this.bodyRadius/2);
+
 			context.closePath();
 			context.stroke();
 
-			context.globalAlpha=0.2;
+			context.globalAlpha=0.35;
 			context.beginPath();
 			var rotationLeftLimit = camera.rotation-this.sightWidth/2;
 			var rotationRightLimit = camera.rotation+this.sightWidth/2;
 
-			context.strokeStyle="darkgreen"; 
+			context.strokeStyle="rgb(255,0,0)"; 
 			var ray;
 			things.forEach(function(x){
 				x.hit = false;
@@ -301,13 +337,15 @@ function Camera(rotStep,walkStep,rotation) {
 			});
 			var relativeAngle = - this.sightWidth/2;
 			var step = 0.05;
+			var rayLength =  this.sightLength-this.bodyRadius;
 			for(var i = rotationLeftLimit;i <= rotationRightLimit;i+=0.05){
-				
-				var start = {"x":camera.position.x,"y":camera.position.z};
-				context.moveTo(start.x, start.y);
 				camCos = Math.cos(i);
 				camSin = -Math.sin(i);
-				ray= {x:camCos*this.sightLength,y:camSin*this.sightLength};
+				
+				var start = {"x":camera.position.x+camCos*this.bodyRadius,"y":camera.position.z+camSin*this.bodyRadius};
+				context.moveTo(start.x, start.y);
+				
+				ray= {x:camCos*rayLength,y:camSin*rayLength};
 				var end = {"x":start.x+ray.x,"y":start.y+ray.y};
 				context.lineTo(end.x,end.y);
 				things.forEach(function(x){
@@ -336,29 +374,28 @@ function Camera(rotStep,walkStep,rotation) {
 			});
 			
 			
-				context.moveTo(camera.position.x, camera.position.z);
-				camCos = Math.cos(rotationRightLimit);
-				camSin = -Math.sin(rotationRightLimit);
-				ray= {x:camCos*this.sightLength,y:camSin*this.sightLength};
-				context.lineTo(camera.position.x+ray.x,camera.position.z+ray.y);
-					context.closePath();
+			context.moveTo(camera.position.x, camera.position.z);
+			camCos = Math.cos(rotationRightLimit);
+			camSin = -Math.sin(rotationRightLimit);
+			ray= {x:camCos*this.sightLength,y:camSin*this.sightLength};
+			context.lineTo(camera.position.x+ray.x,camera.position.z+ray.y);
+			context.closePath();
 			context.stroke();
-/*
-   		    camCos = Math.cos(0);
-			camSin = -Math.sin(0);
-			context.moveTo(camera.position.x+camCos*this.sightLength, camera.position.z+camSin*this.sightLength);
-			context.arc(camera.position.x, camera.position.z, this.sightLength, 0, Math.PI*2,false);
-			*/
+
 			context.beginPath();
-			//context.moveTo(camera.position.x+ray.x, camera.position.z+ray.y);
 			context.moveTo(camera.position.x, camera.position.z);
 			context.arc(camera.position.x, camera.position.z, this.sightLength, -rotationRightLimit, -rotationLeftLimit,false);
 			
 			context.closePath();
 			context.stroke();
 			context.globalAlpha=1;
+			
+				context.beginPath();
 			//context.moveTo(camera.position.x, camera.position.z);
-			//context.arc(camera.position.x, camera.position.z, this.sightLength, rotationLeftLimit, rotationRightLimit,true);
+				context.arc(camera.position.x, camera.position.z, this.bodyRadius,0, 2*Math.PI,false);
+context.stroke();
+						context.closePath();
+			
 
 	}
 	
@@ -484,8 +521,8 @@ function Square(size,distance,angleToOrigine,innerRotation,name){
 			var saveFill= context.fillStyle;
 			var saveStroke= context.strokeStyle;
 			
-
-
+	
+			
 			context.globalAlpha=0.8;
 			context.strokeStyle="black";
 			context.fillStyle="rgb(20,230,160)"; 
@@ -503,9 +540,7 @@ function Square(size,distance,angleToOrigine,innerRotation,name){
 				context.fillStyle="red"; 
 				context.fill();
 				context.fillStyle=saveFill; 
-				context.fillText(Math.floor(todegrees(self.hitMiddleAngle))+" °", self.topRight.x+2, self.topRight.y-2);
-
-				
+				context.fillText(Math.floor(todegrees(self.hitMiddleAngle))+" °", self.topRight.x+2, self.topRight.y-2);				
 			}
 			
 			context.fillStyle=saveFill;
@@ -898,64 +933,5 @@ function calcAngleRadians(x, y) { // origine : calcAngleDegrees
 	window.onresize = function(event) {
 		init();
 	};
-	
-	// From p5.collide2d.js !!!!! as I don't use p5.js yet 
-function collideLineLine(x1, y1, x2, y2, x3, y3, x4, y4) {
-
-  // calculate the distance to intersection point
-  var uA = ((x4-x3)*(y1-y3) - (y4-y3)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
-  var uB = ((x2-x1)*(y1-y3) - (y2-y1)*(x1-x3)) / ((y4-y3)*(x2-x1) - (x4-x3)*(y2-y1));
-
-  // if uA and uB are between 0-1, lines are colliding
-  if (uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1) {
-		return true;
-  }else{
-	  return false;
-	  }
-
-}
-
-function collideLineRect(x1, y1, x2, y2, rx, ry, rw, rh) {
-
-  // check if the line has hit any of the rectangle's sides. uses the collideLineLine function above
-  var left, right, top, bottom, intersection;
-
-     left =   collideLineLine(x1,y1,x2,y2, rx,ry,rx, ry+rh);
-     right =  collideLineLine(x1,y1,x2,y2, rx+rw,ry, rx+rw,ry+rh);
-     top =    collideLineLine(x1,y1,x2,y2, rx,ry, rx+rw,ry);
-     bottom = collideLineLine(x1,y1,x2,y2, rx,ry+rh, rx+rw,ry+rh);
-
-  // if ANY of the above are true, the line has hit the rectangle
-  if (left || right || top || bottom) {
-    return true;
-  }
-  return false;
-}
-
-function collideLinePoly(x1, y1, x2, y2, vertices) {
-
-  // go through each of the vertices, plus the next vertex in the list
-  var next = 0;
-  for (var current=0; current<vertices.length; current++) {
-
-    // get next vertex in list if we've hit the end, wrap around to 0
-    next = current+1;
-    if (next == vertices.length) next = 0;
-
-    // get the PVectors at our current position extract X/Y coordinates from each
-    var x3 = vertices[current].x;
-    var y3 = vertices[current].y;
-    var x4 = vertices[next].x;
-    var y4 = vertices[next].y;
-
-    // do a Line/Line comparison if true, return 'true' immediately and stop testing (faster)
-    var hit = collideLineLine(x1, y1, x2, y2, x3, y3, x4, y4);
-    if (hit) {
-      return true;
-    }
-  }
-  // never got a hit
-  return false;
-}
 
 }
