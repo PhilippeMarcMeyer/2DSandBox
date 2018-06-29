@@ -4,7 +4,7 @@
 
 window.onload = function() {
 	var needUpdate,width,height,fov,h2,w2,k90degres,k270degres,k360degres;
-
+	var saveContext;
 	var canvas = document.getElementById("canvas");
 	var	context = canvas.getContext("2d");
 	var things = [];
@@ -216,28 +216,7 @@ function Camera(rotStep,walkStep,rotation) {
 		
 
 	}
-	this.savePosition = function(){
-		
-		this.antePenultLocation.x = this.previousLocation.x;
-		this.antePenultLocation.y = this.previousLocation.y;
-		this.antePenultLocation.z = this.previousLocation.z;
-		
-		this.previousLocation.x = this.position.x;
-		this.previousLocation.y = this.position.y;
-		this.previousLocation.z = this.position.z;
-		
-		
-	}
-	
-	this.restorePosition = function(){
-		this.position.x = this.antePenultLocation.x;
-		this.position.y = this.antePenultLocation.y;
-		this.position.z = this.antePenultLocation.z;
-		
-		this.previousLocation.x = this.antePenultLocation.x;
-		this.previousLocation.y = this.antePenultLocation.y;
-		this.previousLocation.z = this.antePenultLocation.z;
-	}
+
 	
 	this.draw = function(){
 		
@@ -253,149 +232,16 @@ function Camera(rotStep,walkStep,rotation) {
 	
 	this.drawStatic = function(){
 		var self = this;
-			things.forEach(function(x){
-				var poly = [x.topLeft,x.topRight,x.bottomRight,x.bottomLeft,x.topLeft];
-				if(collideCirclePoly(self.position.x , self.position.z, self.bodyRadius*2, poly)) {
-					self.restorePosition ();
-				}	
+		
+		self.checkCollisions();
+		
+		self.drawSoil();
+		
+		self.drawCross();
+		
+		self.drawCamera();
 
-			var alpha = 1-(x.distance/300);
-				if (alpha < 0.1) alpha = 0.1;
-				
-				context.globalAlpha=alpha;
-			
-				
-				context.beginPath();
-				context.strokeStyle="red"; 
-				context.fillStyle="darkgreen"; 
-
-				context.arc(0, 0, x.distance, 0, Math.PI * 2, true);
-				context.closePath();
-	
-				context.stroke();	
-				context.fill();				
-			}); 
-
-			context.globalAlpha=0.4;
-			context.beginPath();
-			context.strokeStyle="green"; 
-			context.fillStyle="white"; 
-			var camCos = Math.cos(k90degres);
-			var camSin = -Math.sin(k90degres);
-			
-			var vectorCam = {x:camCos*50,y:camSin*50};
-			
-			var west = simpleRotate(vectorCam,k90degres);
-			var east = simpleRotate(vectorCam,-k90degres);
-			var north = vectorCam;
-			var south = simpleRotate(vectorCam,-k180degres);
-			
-			
-			context.beginPath();
-			context.strokeStyle="black"; 
-			context.moveTo(west.x, west.y);
-			context.lineTo(east.x, east.y);
-			context.moveTo(north.x, north.y);
-			context.lineTo(south.x, south.y);
-			context.closePath();
-			context.stroke();
-
-			context.beginPath();
-			context.fillStyle="black";
-			context.fillText("W",west.x-5, west.y);
-			context.fillText("E",east.x-5, east.y);
-			context.fillText("N",north.x-5, north.y);
-			context.fillText("S",south.x-5, south.y);
-			context.closePath();
-			context.stroke();
-			
-			context.globalAlpha=1;
-			
-			context.beginPath();
-			context.strokeStyle="darkblue"; 
-			var messagePosition = camera.position.x + "," + camera.position.z;
-			var camCos = Math.cos(camera.rotation);
-			var camSin = -Math.sin(camera.rotation);
-			var vectorCam = {x:camCos*30,y:camSin*30};
-			drawArrow(context,camera.position.x,camera.position.z,camera.position.x+vectorCam.x,camera.position.z+vectorCam.y);
-			context.fillText(messagePosition, camera.position.x -7, camera.position.z -this.bodyRadius/2);
-			context.fillText(Math.floor(camera.rotation * 180 / Math.PI) +" °", camera.position.x -6, camera.position.z +this.bodyRadius/2);
-
-			context.closePath();
-			context.stroke();
-
-			context.globalAlpha=0.35;
-			context.beginPath();
-			var rotationLeftLimit = camera.rotation-this.sightWidth/2;
-			var rotationRightLimit = camera.rotation+this.sightWidth/2;
-
-			context.strokeStyle="rgb(255,0,0)"; 
-			var ray;
-			things.forEach(function(x){
-				x.hit = false;
-				x.hitAngles.length = 0;
-			});
-			var relativeAngle = - this.sightWidth/2;
-			var step = 0.05;
-			var rayLength =  this.sightLength-this.bodyRadius;
-			for(var i = rotationLeftLimit;i <= rotationRightLimit;i+=0.05){
-				camCos = Math.cos(i);
-				camSin = -Math.sin(i);
-				
-				var start = {"x":camera.position.x+camCos*this.bodyRadius,"y":camera.position.z+camSin*this.bodyRadius};
-				context.moveTo(start.x, start.y);
-				
-				ray= {x:camCos*rayLength,y:camSin*rayLength};
-				var end = {"x":start.x+ray.x,"y":start.y+ray.y};
-				context.lineTo(end.x,end.y);
-				things.forEach(function(x){
-					
-					var poly = [x.topLeft,x.topRight,x.bottomRight,x.bottomLeft,x.topLeft];
-				
-					if(collideLinePoly(start.x,start.y,end.x,end.y,poly)){
-						x.hit = true;
-						x.hitAngles.push(relativeAngle);
-					}					
-				});
-				relativeAngle += step;
-			}
-			things.forEach(function(x){
-				if(x.hit){
-					var nrHits = x.hitAngles.length;
-					if(nrHits==0){
-						x.hit = false;
-					}else if(nrHits==1){
-						x.hitMiddleAngle = x.hitAngles[0];
-					}else{
-						x.hitMiddleAngle = x.hitAngles[Math.floor((nrHits-1)/2)];
-					}
-				}
-			
-			});
-			
-			
-			context.moveTo(camera.position.x, camera.position.z);
-			camCos = Math.cos(rotationRightLimit);
-			camSin = -Math.sin(rotationRightLimit);
-			ray= {x:camCos*this.sightLength,y:camSin*this.sightLength};
-			context.lineTo(camera.position.x+ray.x,camera.position.z+ray.y);
-			context.closePath();
-			context.stroke();
-
-			context.beginPath();
-			context.moveTo(camera.position.x, camera.position.z);
-			context.arc(camera.position.x, camera.position.z, this.sightLength, -rotationRightLimit, -rotationLeftLimit,false);
-			
-			context.closePath();
-			context.stroke();
-			context.globalAlpha=1;
-			
-				context.beginPath();
-			//context.moveTo(camera.position.x, camera.position.z);
-				context.arc(camera.position.x, camera.position.z, this.bodyRadius,0, 2*Math.PI,false);
-context.stroke();
-						context.closePath();
-			
+		self.drawScanner();
 
 	}
 	
@@ -443,6 +289,212 @@ context.stroke();
 	
 	this.draw3D = function(){
 	}
+	
+	this.drawSoil=function(){
+		var self = this;
+		things.forEach(function(x){
+			var alpha = 1-(x.distance/300);
+				if (alpha < 0.1) alpha = 0.1;
+				
+				context.globalAlpha=alpha;				
+				context.beginPath();
+				context.strokeStyle="black"; 
+				context.fillStyle="rgb(20,230,160)"; 
+
+				context.arc(0, 0, x.distance, 0, Math.PI * 2, true);
+				context.closePath();
+	
+				context.stroke();	
+				context.fill();				
+			}); 
+		
+	}
+	this.checkCollisions=function(){
+		var self = this;
+		things.forEach(function(x){
+				var poly = [x.topLeft,x.topRight,x.bottomRight,x.bottomLeft,x.topLeft];
+				if(collideCirclePoly(self.position.x , self.position.z, self.bodyRadius*2, poly)) {
+					self.restorePosition ();
+				}			
+			}); 
+	}
+	
+		this.drawCross=function(){
+			context.save();
+			context.globalAlpha=0.4;
+			context.beginPath();
+			context.strokeStyle="green"; 
+			context.fillStyle="white"; 
+			var camCos = Math.cos(k90degres);
+			var camSin = -Math.sin(k90degres);
+			
+			var vectorCam = {x:camCos*50,y:camSin*50};
+			
+			var west = simpleRotate(vectorCam,k90degres);
+			var east = simpleRotate(vectorCam,-k90degres);
+			var north = vectorCam;
+			var south = simpleRotate(vectorCam,-k180degres);
+			
+			
+			context.beginPath();
+			context.strokeStyle="black"; 
+			context.moveTo(west.x, west.y);
+			context.lineTo(east.x, east.y);
+			context.moveTo(north.x, north.y);
+			context.lineTo(south.x, south.y);
+			context.closePath();
+			context.stroke();
+
+			context.beginPath();
+			context.fillStyle="black";
+			context.fillText("W",west.x-5, west.y);
+			context.fillText("E",east.x-5, east.y);
+			context.fillText("N",north.x-5, north.y);
+			context.fillText("S",south.x-5, south.y);
+			context.closePath();
+			context.stroke();
+			
+			context.restore();
+		}
+	
+	this.drawCamera=function(){
+			context.save();
+
+			context.globalAlpha=1;	
+			
+			context.beginPath();
+			context.strokeStyle="darkred"; 
+			context.fillStyle="white"; 
+			
+			context.beginPath();
+			context.arc(camera.position.x, camera.position.z, this.bodyRadius,0, 2*Math.PI,false);
+		
+			context.closePath();
+			context.stroke();
+			context.fill();
+			
+
+
+			var messagePosition = camera.position.x + "," + camera.position.z;
+			var camCos = Math.cos(camera.rotation);
+			var camSin = -Math.sin(camera.rotation);
+			var vectorCam = {x:camCos*30,y:camSin*30};
+			
+
+			context.beginPath();
+			drawArrow(context,camera.position.x,camera.position.z,camera.position.x+vectorCam.x,camera.position.z+vectorCam.y);
+			context.closePath();
+			context.stroke();
+			
+			context.strokeStyle="darkred"; 
+			context.fillStyle="black"; 
+			
+			context.beginPath();
+			context.fillText(messagePosition, camera.position.x -7, camera.position.z -this.bodyRadius/2);
+			context.fillText(Math.floor(camera.rotation * 180 / Math.PI) +" °", camera.position.x -6, camera.position.z +this.bodyRadius/2);
+
+			context.closePath();
+			context.stroke();
+			
+		
+
+			context.restore();
+	}
+
+	this.drawScanner=function(){
+		context.save();
+		context.globalAlpha=0.35;
+		context.beginPath();
+		var rotationLeftLimit = camera.rotation-this.sightWidth/2;
+		var rotationRightLimit = camera.rotation+this.sightWidth/2;
+
+		context.strokeStyle="rgb(255,0,0)"; 
+		var ray;
+		things.forEach(function(x){
+			x.hit = false;
+			x.hitAngles.length = 0;
+		});
+		var relativeAngle = - this.sightWidth/2;
+		var step = 0.05;
+		var rayLength =  this.sightLength-this.bodyRadius;
+		for(var i = rotationLeftLimit;i <= rotationRightLimit;i+=0.05){
+			camCos = Math.cos(i);
+			camSin = -Math.sin(i);
+			
+			var start = {"x":camera.position.x+camCos*this.bodyRadius,"y":camera.position.z+camSin*this.bodyRadius};
+			context.moveTo(start.x, start.y);
+			
+			ray= {x:camCos*rayLength,y:camSin*rayLength};
+			var end = {"x":start.x+ray.x,"y":start.y+ray.y};
+			context.lineTo(end.x,end.y);
+			things.forEach(function(x){
+				
+				var poly = [x.topLeft,x.topRight,x.bottomRight,x.bottomLeft,x.topLeft];
+			
+				if(collideLinePoly(start.x,start.y,end.x,end.y,poly)){
+					x.hit = true;
+					x.hitAngles.push(relativeAngle);
+				}					
+			});
+			relativeAngle += step;
+		}
+		things.forEach(function(x){
+			if(x.hit){
+				var nrHits = x.hitAngles.length;
+				if(nrHits==0){
+					x.hit = false;
+				}else if(nrHits==1){
+					x.hitMiddleAngle = x.hitAngles[0];
+				}else{
+					x.hitMiddleAngle = x.hitAngles[Math.floor((nrHits-1)/2)];
+				}
+			}
+		
+		});
+		
+		
+		context.moveTo(camera.position.x, camera.position.z);
+		camCos = Math.cos(rotationRightLimit);
+		camSin = -Math.sin(rotationRightLimit);
+		ray= {x:camCos*this.sightLength,y:camSin*this.sightLength};
+		context.lineTo(camera.position.x+ray.x,camera.position.z+ray.y);
+		context.closePath();
+		context.stroke();
+
+		context.beginPath();
+		context.moveTo(camera.position.x, camera.position.z);
+		context.arc(camera.position.x, camera.position.z, this.sightLength, -rotationRightLimit, -rotationLeftLimit,false);
+		
+		context.closePath();
+		context.stroke();
+				
+		context.restore();
+
+	}	
+	
+	this.savePosition = function(){
+		
+		this.antePenultLocation.x = this.previousLocation.x;
+		this.antePenultLocation.y = this.previousLocation.y;
+		this.antePenultLocation.z = this.previousLocation.z;
+		
+		this.previousLocation.x = this.position.x;
+		this.previousLocation.y = this.position.y;
+		this.previousLocation.z = this.position.z;
+		
+		
+	}
+	
+	this.restorePosition = function(){
+		this.position.x = this.previousLocation.x;
+		this.position.y = this.previousLocation.y;
+		this.position.z = this.previousLocation.z;
+		
+		this.previousLocation.x = this.antePenultLocation.x;
+		this.previousLocation.y = this.antePenultLocation.y;
+		this.previousLocation.z = this.antePenultLocation.z;
+	}
+
 }
 // primitive,size,distance,altitude,angleToOrigine,rotation,name
 function Square(size,distance,angleToOrigine,innerRotation,name){
@@ -515,7 +567,8 @@ function Square(size,distance,angleToOrigine,innerRotation,name){
 		// the camera moves : the objects stay stationnary so the positionRelative == positionAbsolute
 			var self = this;
 
-
+			context.save();
+		
 			context.strokeStyle="black"; 
 			context.strokeStyle="white";
 			var saveFill= context.fillStyle;
@@ -543,17 +596,17 @@ function Square(size,distance,angleToOrigine,innerRotation,name){
 				context.fillText(Math.floor(todegrees(self.hitMiddleAngle))+" °", self.topRight.x+2, self.topRight.y-2);				
 			}
 			
-			context.fillStyle=saveFill;
-
+			context.fillStyle="black"; 
 			
 			context.beginPath();
 			context.strokeStyle=saveStroke; 
 			context.fillText(self.name, self.positionAbsolute.x-2, self.positionAbsolute.y+2);
+			context.closePath();
 			
 			
-			context.fill();
 			
 			context.globalAlpha=1;
+			context.restore();
 	}
 	
 		this.drawDynamic = function(){
