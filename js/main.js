@@ -125,23 +125,49 @@ this.data2D = {
 	"bottomRight": {"x":1,"y":1}
 }
 this.data = [
-	[-1,-1,-1],
-	[1,-1,-1],
-	[1, 1,-1],
-	[-1, 1,-1],
-	[1,-1, 1],
-	[-1,-1, 1],
-	[-1, 1, 1],
-	[1, 1, 1]
+	[-1,-1,-1], // left, bottom, back
+	[1,-1,-1], // right, bottom, back
+	[1, 1,-1], // right, top, back
+	[-1, 1,-1], // left, top, back
+	[1,-1, 1], // right, bottom, front
+	[-1,-1, 1], // left, bottom, front
+	[-1, 1, 1],// left, top, front
+	[1, 1, 1] // right, top, front
 ];
 this.poly=[];
-this.poly[0]=[0,1,2,3];
-this.poly[1]=[1,4,7,2];
-this.poly[2]=[4,5,6,7]; 
-this.poly[3]=[5,0,3,6];
-this.poly[4]=[5,4,1,0];
-this.poly[5]=[3,2,7,6];
+this.poly[0]=[0,1,2,3]; // Back side
+this.poly[1]=[1,4,7,2]; // Right side
+this.poly[2]=[4,5,6,7]; // front side
+this.poly[3]=[5,0,3,6]; // left side
+this.poly[4]=[5,4,1,0]; // bottom side
+this.poly[5]=[3,2,7,6]; // top side
+
+this.normals=[
+{"x":0,"y":0,"z":-1},
+{"x":1,"y":0,"z":0},
+{"x":0,"y":0,"z":1},
+{"x":-1,"y":0,"z":0},
+{"x":0,"y":-1,"z":0},
+{"x":0,"y":1,"z":0},
+];
+this.normals2D=[
+	{"x":0,"y":-1,"dot":0},
+	{"x":1,"y":0,"dot":0},
+	{"x":0,"y":1,"dot":0},
+	{"x":-1,"y":0,"dot":0}
+];
+
+this.colors=[
+	"DarkOrchid",
+	"FireBrick",
+	"GoldenRod",
+	"HotPink",
+	"OrangeRed",
+	"MidnightBlue"
+]
 }
+
+
 
 function scalarProduct(a,b){
 var ax=a.x;
@@ -415,9 +441,9 @@ function Camera(rotStep,walkStep,rotation) {
 			x.hitAngles.length = 0;
 		});
 		var relativeAngle = - this.sightWidth/2;
-		var step = 0.05;
+		var step = 0.02;
 		var rayLength =  this.sightLength-this.bodyRadius;
-		for(var i = rotationLeftLimit;i <= rotationRightLimit;i+=0.05){
+		for(var i = rotationLeftLimit;i <= rotationRightLimit;i+=step){
 			camCos = Math.cos(i);
 			camSin = -Math.sin(i);
 			
@@ -451,6 +477,17 @@ function Camera(rotStep,walkStep,rotation) {
 			}
 		
 		});
+		
+		things.forEach(function(x){
+			if(x.hit){
+//geometry.normals2D[0]
+				
+//scalarProduct2D
+			}
+		
+		});
+		
+		
 		
 		
 		context.moveTo(camera.position.x, camera.position.z);
@@ -510,6 +547,7 @@ function Square(size,distance,angleToOrigine,innerRotation,name){
 	this.hit = false;
 	this.hitAngles = [];
 	this.hitMiddleAngle = 0;
+
 	
 	var cos = Math.cos(this.angleToOrigine);
 	var sin = -Math.sin(this.angleToOrigine);
@@ -528,6 +566,7 @@ function Square(size,distance,angleToOrigine,innerRotation,name){
 
 	
 	var geometry = this.geometry.data2D;
+	
 	this.topLeft = {"x": geometry.topLeft.x,"y": geometry.topLeft.y};
 	this.topRight = {"x": geometry.topRight.x ,"y": geometry.topRight.y };
 	this.bottomLeft = {"x": geometry.bottomLeft.x ,"y": geometry.bottomLeft.y};
@@ -549,7 +588,12 @@ function Square(size,distance,angleToOrigine,innerRotation,name){
 	
 	this.bottomRight.x = this.bottomRight.x * this.half  + this.positionAbsolute.x;
 	this.bottomRight.y = this.bottomRight.y * this.half  + this.positionAbsolute.y;
-			
+	
+	this.geometry.normals2D[0] =  simpleRotate(this.geometry.normals2D[0],this.innerRotation);
+	this.geometry.normals2D[1] =  simpleRotate(this.geometry.normals2D[1],this.innerRotation);
+	this.geometry.normals2D[2] =  simpleRotate(this.geometry.normals2D[2],this.innerRotation);
+	this.geometry.normals2D[3] =  simpleRotate(this.geometry.normals2D[3],this.innerRotation);
+		
 
 	this.draw = function(){
 		
@@ -574,7 +618,25 @@ function Square(size,distance,angleToOrigine,innerRotation,name){
 			var saveFill= context.fillStyle;
 			var saveStroke= context.strokeStyle;
 			
-	
+				// drawing normals :
+		    context.globalAlpha=0.4;
+			context.strokeStyle="black";
+			context.beginPath();
+			
+			context.moveTo(self.positionAbsolute.x, self.positionAbsolute.y);
+			context.lineTo(self.positionAbsolute.x + self.geometry.normals2D[0].x*self.size, self.positionAbsolute.y + self.geometry.normals2D[0].y*self.size);
+			
+			context.moveTo(self.positionAbsolute.x, self.positionAbsolute.y);
+			context.lineTo(self.positionAbsolute.x + self.geometry.normals2D[1].x*self.size, self.positionAbsolute.y + self.geometry.normals2D[1].y*self.size);
+			
+			context.moveTo(self.positionAbsolute.x, self.positionAbsolute.y);
+			context.lineTo(self.positionAbsolute.x + self.geometry.normals2D[2].x*self.size, self.positionAbsolute.y + self.geometry.normals2D[2].y*self.size);
+
+			context.moveTo(self.positionAbsolute.x, self.positionAbsolute.y);
+			context.lineTo(self.positionAbsolute.x + self.geometry.normals2D[3].x*self.size, self.positionAbsolute.y + self.geometry.normals2D[3].y*self.size);
+			
+			context.stroke();
+			context.closePath();
 			
 			context.globalAlpha=0.8;
 			context.strokeStyle="black";
@@ -603,8 +665,8 @@ function Square(size,distance,angleToOrigine,innerRotation,name){
 			context.fillText(self.name, self.positionAbsolute.x-2, self.positionAbsolute.y+2);
 			context.closePath();
 			
-			
-			
+
+
 			context.globalAlpha=1;
 			context.restore();
 	}
