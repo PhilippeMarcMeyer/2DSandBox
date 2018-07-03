@@ -667,7 +667,7 @@ function Square(size,distance,angleToOrigine,innerRotation,name){
 				context.fillStyle="red"; 
 				context.fill();
 				context.fillStyle="black"; 
-				context.fillText(Math.floor(todegrees(self.hitMiddleAngle))+" °", self.topRight.x+2, self.topRight.y-2);				
+				context.fillText(Math.floor(todegrees(self.positionRelative.grot))+" °", self.topRight.x+2, self.topRight.y-2);				
 			}
 			
 			context.fillStyle="black"; 
