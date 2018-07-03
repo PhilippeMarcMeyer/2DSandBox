@@ -10,7 +10,7 @@ window.onload = function() {
 	var things = [];
 	var camera = new Camera(0.05,10,toradians(90));
 	var mode = "static";
-init();
+	init();
 
 var elem = document.getElementsByClassName("mode");
 for (var i = 0; i < elem.length; i++) {
@@ -58,7 +58,7 @@ things.push(new Square(45,185,k180degres+1,.3,"D"));
 
 things.push(new Square(22,220,0.9,.3,"E"));
 
-things.push(new Square(50,450,1.5,.7,"F"));
+things.push(new Square(50,325,1.5,.7,"F"));
 
 	update();
 
@@ -84,22 +84,29 @@ function init(){
 	zoom = 4;
 	focalAverage = (focalW + focalH)/2;
 	
-
+	//context.scale(0.8,0.5);
 	context.translate(width / 2, height / 2);
+	
 
 }
 
 function update() {
+
+		
 		context.clearRect(-w2 , -h2, width, height);
-		context.fillStyle="rgb(185,183,184)"; 
-		context.rect(-w2 , -h2, width, height);
+		//context.fillStyle="rgb(185,183,184)"; 
+		//context.rect(-w2 , -h2, width, height);
 		context.fill();
 		context.fillStyle="black"; 
 		camera.draw();
 		things.forEach(function(thing){
 			thing.draw();
 		});
-
+	
+		//context3d.clearRect(-w2 , -h2, width, height);
+		//context3d.fillStyle="pink"; 
+		//context3d.rect(800 , 500, 50, 50);
+		//context3d.fill();
 	requestAnimationFrame(update);
 	
 }
@@ -151,10 +158,10 @@ this.normals=[
 {"x":0,"y":1,"z":0},
 ];
 this.normals2D=[
-	{"x":0,"y":-1,"dot":0},
-	{"x":1,"y":0,"dot":0},
-	{"x":0,"y":1,"dot":0},
-	{"x":-1,"y":0,"dot":0}
+	{"x":0,"y":-1},
+	{"x":1,"y":0},
+	{"x":0,"y":1},
+	{"x":-1,"y":0}
 ];
 
 this.colors=[
@@ -212,14 +219,18 @@ function hypo(x,y,z){
 return Math.sqrt(x*x+y*y+z*z);
 }
 
+function hypo2d(x,y){
+return Math.sqrt(x*x+y*y);
+}
+
 function Camera(rotStep,walkStep,rotation) {
 	this.rotation = rotation ? rotation : 0; 
 	this.position = {x:0,y:0,z:0};
 	this.previousLocation = {x:0,y:0,z:0}; 
 	this.antePenultLocation = {x:0,y:0,z:0}; 
 
-	this.sightWidth = toradians(120);
-	this.sightLength = 200;
+	this.sightWidth = toradians(140);
+	this.sightLength = 300;
 	this.walkStep = walkStep;
 	this.rotStep = rotStep;
 	this.bodyRadius = 20;
@@ -273,44 +284,44 @@ function Camera(rotStep,walkStep,rotation) {
 	
 	this.drawDynamic = function(){
 		
-			var camCos = Math.cos(camera.rotation);
-			var camSin = -Math.sin(camera.rotation);
-			
-			var vectorCam = {x:camCos*50,y:camSin*50};
-			
-			var west = simpleRotate(vectorCam,k90degres);
-			var east = simpleRotate(vectorCam,-k90degres);
-			var north = vectorCam;
-			var south = simpleRotate(vectorCam,-k180degres);
-			
-			context.globalAlpha=0.5;
-			context.beginPath();
-			context.strokeStyle="green"; 
-			
-			context.moveTo(west.x, west.y);
-			context.lineTo(east.x, east.y);
-			context.moveTo(north.x, north.y);
-			context.lineTo(south.x, south.y);
-			
-			context.fillText("W",west.x-5, west.y);
-			context.fillText("E",east.x-5, east.y);
-			context.fillText("N",north.x-5, north.y);
-			context.fillText("S",south.x-5, south.y);
-			
-			context.closePath();
-			context.stroke();
-			
-			context.globalAlpha=1;
-			context.beginPath();
-			context.strokeStyle="darkblue"; 
-			var messagePosition = camera.position.x + "," + camera.position.z;
-	
-			vectorCam = {x:0,y:-30};
-			
-			drawArrow(context,0,0,vectorCam.x,vectorCam.y);
-			context.fillText(messagePosition+" * " + Math.floor(camera.rotation * 180 / Math.PI) +" °", 30, -30);
-			context.closePath();
-			context.stroke();
+		var camCos = Math.cos(camera.rotation);
+		var camSin = -Math.sin(camera.rotation);
+		
+		var vectorCam = {x:camCos*50,y:camSin*50};
+		
+		var west = simpleRotate(vectorCam,k90degres);
+		var east = simpleRotate(vectorCam,-k90degres);
+		var north = vectorCam;
+		var south = simpleRotate(vectorCam,-k180degres);
+		
+		context.globalAlpha=0.5;
+		context.beginPath();
+		context.strokeStyle="green"; 
+		
+		context.moveTo(west.x, west.y);
+		context.lineTo(east.x, east.y);
+		context.moveTo(north.x, north.y);
+		context.lineTo(south.x, south.y);
+		
+		context.fillText("W",west.x-5, west.y);
+		context.fillText("E",east.x-5, east.y);
+		context.fillText("N",north.x-5, north.y);
+		context.fillText("S",south.x-5, south.y);
+		
+		context.closePath();
+		context.stroke();
+		
+		context.globalAlpha=1;
+		context.beginPath();
+		context.strokeStyle="darkblue"; 
+		var messagePosition = camera.position.x + "," + camera.position.z;
+
+		vectorCam = {x:0,y:-30};
+		
+		drawArrow(context,0,0,vectorCam.x,vectorCam.y);
+		context.fillText(messagePosition+" * " + Math.floor(camera.rotation * 180 / Math.PI) +" °", 30, -30);
+		context.closePath();
+		context.stroke();
 	}
 	
 	this.draw3D = function(){
@@ -510,7 +521,13 @@ function Camera(rotStep,walkStep,rotation) {
 			x.positionRelative.irot = calcAngleRadians(irotpos.x,irotpos.y);
 			x.positionRelative.dist =  dist;
 
+			x.positionRelative.normals.length=0;
+			x.positionRelative.dots.length=0;
+			irot = x.positionRelative.irot;
 			
+			var camCos = 0;
+			var camSin = 1;
+			var camVector = {"x":camCos,"y":camSin};
 			if(x.positionRelative.grot >= -self.sightWidth/2 && x.positionRelative.grot <= self.sightWidth/2 && x.positionRelative.dist <=  self.sightLength){
 				x.hit = true;
 			}
@@ -553,12 +570,13 @@ function Square(size,distance,angleToOrigine,innerRotation,name){
 	this.name = name;
 	this.innerRotation = innerRotation;
 	this.positionAbsolute = {x:0,y:0};
-	this.positionRelative = {x:0,y:0,grot:0,irot:0,dist:0}; // global rotation, innerRotation
+	this.positionRelative = {x:0,y:0,grot:0,irot:0,dist:0,normals:[],dots:[]}; // global rotation, innerRotation
 	this.half = Math.floor(size/2);
 	this.geometry = new Cube(); // only for 3D
 	this.hit = false;
 	this.hitAngles = [];
 	this.hitMiddleAngle = 0;
+	
 
 	
 	var cos = Math.cos(this.angleToOrigine);
@@ -630,6 +648,7 @@ function Square(size,distance,angleToOrigine,innerRotation,name){
 			var saveFill= context.fillStyle;
 			var saveStroke= context.strokeStyle;
 			
+			
 				// drawing normals :
 		    context.globalAlpha=0.4;
 			context.strokeStyle="black";
@@ -667,9 +686,75 @@ function Square(size,distance,angleToOrigine,innerRotation,name){
 				context.fillStyle="red"; 
 				context.fill();
 				context.fillStyle="black"; 
-				context.fillText(Math.floor(todegrees(self.positionRelative.grot))+" °", self.topRight.x+2, self.topRight.y-2);				
+				context.fillText(Math.floor(todegrees(self.positionRelative.grot))+" °", self.topRight.x+2, self.topRight.y-2);		
+				
+				var corners = [
+					{"pt":self.topLeft,"dist":0,"order":0},
+					{"pt":self.topRight,"dist":0,"order":1},
+					{"pt":self.bottomRight,"dist":0,"order":2},
+					{"pt":self.bottomLeft,"dist":0,"order":3}
+				]
+				corners.forEach(function(x){
+					x.dist = hypo2d(camera.position.x-x.pt.x,camera.position.z-x.pt.y);
+				});
+				corners.sort(function(a,b){
+					return (a.dist>=b.dist);
+				});
+				var sides =[
+					[0,1],
+					[1,2],
+					[2,3],
+					[3,0]
+					
+				]
+/* 				this.colors=[
+					"DarkOrchid", // top
+					"FireBrick", // right
+					"GoldenRod", // bottom
+					"HotPink", // left
+					"OrangeRed", // 3d
+					"MidnightBlue"// 3d
+				] */
+				var sidesToDraw = [];
+				var differenceBetWeen0And1 = Math.abs(corners[0].dist-corners[1].dist);
+				if(differenceBetWeen0And1> self.size/6){
+					var pt = corners[0].order;
+					sides.forEach(function(x,j){
+						if(x[0] == pt || x[1] == pt ){
+							sidesToDraw.push(j);
+						}
+					});
+				}else{ // we see only one side
+					var pt1 = corners[0].order;
+					var pt2 = corners[1].order;
+					sides.forEach(function(x,j){
+						if(x[0] == pt1 && x[1] == pt2 ){
+							sidesToDraw.push(j);
+						}else{
+							if(x[0] == pt2 && x[1] == pt1 ){
+								sidesToDraw.push(j);
+							}
+						}
+					});
+				}
+				corners.sort(function(a,b){
+					return (a.order>=b.order);
+				});
+				context.lineWidth=1;
+							context.lineWidth=5;
+					for(var i = 0;i < sidesToDraw.length;i++){
+						var color = self.geometry.colors[sidesToDraw[i]];
+							context.strokeStyle=color; 
+							context.beginPath();
+							var side = sides[sidesToDraw[i]];
+							context.moveTo(corners[side[0]].pt.x, corners[side[0]].pt.y);
+							context.lineTo(corners[side[1]].pt.x, corners[side[1]].pt.y);
+							context.closePath();
+							context.stroke();
+					}
+				context.lineWidth=1;
 			}
-			
+
 			context.fillStyle="black"; 
 			
 			context.beginPath();
