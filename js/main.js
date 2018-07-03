@@ -267,8 +267,8 @@ function Camera(rotStep,walkStep,rotation) {
 		
 		self.drawCamera();
 
-		self.drawScanner();
-
+		//self.drawScanner();
+		self.Scan();
 	}
 	
 	this.drawDynamic = function(){
@@ -487,25 +487,37 @@ function Camera(rotStep,walkStep,rotation) {
 		
 		});
 		
-		
-		
-		
-		context.moveTo(camera.position.x, camera.position.z);
-		camCos = Math.cos(rotationRightLimit);
-		camSin = -Math.sin(rotationRightLimit);
-		ray= {x:camCos*this.sightLength,y:camSin*this.sightLength};
-		context.lineTo(camera.position.x+ray.x,camera.position.z+ray.y);
-		context.closePath();
-		context.stroke();
+	}
+	this.Scan=function(){
+		var self = this;
+		things.forEach(function(x){
+			x.hit = false;
+			var relPosition = {};
+			relPosition.x = x.positionAbsolute.x - camera.position.x;
+			relPosition.y = x.positionAbsolute.y - camera.position.z;
+			
+			var dist =  Math.floor(0.5+Math.sqrt(relPosition.x*relPosition.x+relPosition.y*relPosition.y));
+			relPosition = simpleRotate(relPosition,-camera.rotation);
+			x.positionRelative.x  = relPosition.x;
+			x.positionRelative.y  = relPosition.y;
+			x.positionRelative.grot = calcAngleRadians(x.positionRelative.x,x.positionRelative.y);
+			var irot = x.innerRotation;
+			
+			var irotCos = Math.cos(irot);
+			var irotSin = -Math.sin(irot);
+			
+			var irotpos = simpleRotate({"x":irotCos,"y":irotSin},-camera.rotation);
+			x.positionRelative.irot = calcAngleRadians(irotpos.x,irotpos.y);
+			x.positionRelative.dist =  dist;
 
-		context.beginPath();
-		context.moveTo(camera.position.x, camera.position.z);
-		context.arc(camera.position.x, camera.position.z, this.sightLength, -rotationRightLimit, -rotationLeftLimit,false);
+			
+			if(x.positionRelative.grot >= -self.sightWidth/2 && x.positionRelative.grot <= self.sightWidth/2 && x.positionRelative.dist <=  self.sightLength){
+				x.hit = true;
+			}
+
+		});
 		
-		context.closePath();
-		context.stroke();
-				
-		context.restore();
+
 
 	}	
 	
@@ -541,7 +553,7 @@ function Square(size,distance,angleToOrigine,innerRotation,name){
 	this.name = name;
 	this.innerRotation = innerRotation;
 	this.positionAbsolute = {x:0,y:0};
-	this.positionRelative = {x:0,y:0};
+	this.positionRelative = {x:0,y:0,grot:0,irot:0,dist:0}; // global rotation, innerRotation
 	this.half = Math.floor(size/2);
 	this.geometry = new Cube(); // only for 3D
 	this.hit = false;
