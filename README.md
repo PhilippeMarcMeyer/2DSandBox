@@ -17,3 +17,8 @@ go 3D with wireframe cubes
 
 #Step 1 illustrated
 ![result for step 1](https://raw.githubusercontent.com/PhilippeMarcMeyer/3DStuff/master/img/step1.jpg)
+
+Step 2 : We can now detect object that are in our angle of view (120°) and sight length (200 px) and calculate distance and relative angle
+
+#Step 1 illustrated
+![result for step 2](https://raw.githubusercontent.com/PhilippeMarcMeyer/3DStuff/master/img/step2.jpg)
