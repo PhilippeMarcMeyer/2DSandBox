@@ -5,7 +5,8 @@
    <meta charset="utf-8">
   <title></title>
    <script src="js/p5collide2dBorrow.js"></script>
-    <script src="js/main.js"></script>
+    <script src="js/trigo.js"></script>
+    <script src="js/main3d.js"></script>
 	<style type="text/css">
 	html, body {
 		margin: 0px;
@@ -16,52 +17,10 @@
 		display: block;
 	}
 	
-	#form{
-	position:absolute;
-	text-align:left;
-	margin:20px;
-	}
-	
-	.ModeContainer div {
-		width: 120px;
-		height :20px;
-		text-align:center;
-		background-color : #fff;
-		padding : 10px;
-		border:1px solid grey;
-		margin-top:5px;
-		border-radius:5px;
-		user-select: none;
-	}
-	
-	.ModeContainer div.chosen{
-		background-color : #ef6e6d;
-	}
-	
-	.ModeContainer div:hover{
-		background-color : #ef6e6d;
-		cursor:hand;
-		cursor:pointer;
-	}
-	
-	.ModeContainer div.chosen:hover{
-		background-color : #ef6e6d;
-		cursor:default;
-	}
-	
-	
 	</style>
   </head>
   <body>
-  <div id="form" style="display:none">
-  <label>Mode</label><br />
-  <div class="ModeContainer">
-	  <div id="static" class="mode chosen"> 2D static </div>
-	 <!-- <div id="dynamic" class="mode"> 2D dynamic </div>
-	  <div id="3d" class="mode"> 3D (dynamic) </div>-->
-  </div>
-    </div>
-  <canvas id="canvas"></canvas>
+	<div><canvas id="canvas"></canvas></div>
   </body>
 
 </html>

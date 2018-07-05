@@ -7,6 +7,8 @@ window.onload = function() {
 	var saveContext;
 	var canvas = document.getElementById("canvas");
 	var	context = canvas.getContext("2d");
+
+	
 	var things = [];
 	var camera = new Camera(0.05,10,toradians(90));
 	var mode = "static";
@@ -48,17 +50,18 @@ for (var i = 0; i < elem.length; i++) {
 		angleToOrigine += angleDiff;
 	}
 */
+
 things.push(new Square(30,100,k90degres,0.5,"A"));
 
 things.push(new Square(30,140,k90degres-0.4,0.25,"B"));
 
 things.push(new Square(30,250,k180degres-0.5,0.1,"C"));
 
-things.push(new Square(45,185,k180degres+1,.3,"D"));
+things.push(new Square(30,185,k180degres+1,.3,"D"));
 
-things.push(new Square(22,220,0.9,.3,"E"));
+things.push(new Square(30,220,0.9,.3,"E"));
 
-things.push(new Square(50,325,1.5,.7,"F"));
+things.push(new Square(30,325,1.5,.7,"F"));
 
 	update();
 
@@ -113,16 +116,6 @@ function update() {
 
 
 
-// Converts from degrees to radians.
-function  toradians(degrees) {
-	return degrees * Math.PI / 180;
-}
-
-// Converts from radians to degrees.
-function todegrees(radians) {
-	return radians * 180 / Math.PI;
-}
-
 
 function Cube(){
 this.data2D = {
@@ -176,52 +169,6 @@ this.colors=[
 
 
 
-function scalarProduct(a,b){
-var ax=a.x;
-var ay=a.y;
-var az=a.z;
-var bx=b.x;
-var by=b.y;
-var bz=b.z;
-
-var len = hypo(ax,ay,az);
-ax=ax/len;
-ay=ay/len;
-az=az/len;
-
-len = hypo(bx,by,bz);
-bx=bx/len;
-by=by/len;
-bz=bz/len;
-
-return ax*bx+ay*by+az*bz;
-}
-
-function scalarProduct2D(a,b){
-var ax=a.x;
-var ay=a.y;
-var bx=b.x;
-var by=b.y;
-
-var len =  Math.sqrt(ax*ax+ay*ay);
-ax=ax/len;
-ay=ay/len;
-
-len =  Math.sqrt(bx*bx+by*by);
-bx=bx/len;
-by=by/len;
-
-
-return ax*bx+ay*by;
-}
-
-function hypo(x,y,z){
-return Math.sqrt(x*x+y*y+z*z);
-}
-
-function hypo2d(x,y){
-return Math.sqrt(x*x+y*y);
-}
 
 function Camera(rotStep,walkStep,rotation) {
 	this.rotation = rotation ? rotation : 0; 
@@ -235,28 +182,20 @@ function Camera(rotStep,walkStep,rotation) {
 	this.rotStep = rotStep;
 	this.bodyRadius = 20;
 	this.turn = function(amount){ // -1 or +1
-		//this.rotation.x += rotAngle.x;
 		this.rotation -= this.rotStep*amount;
 		if(this.rotation<0) this.rotation  += k360degres;
 		if(this.rotation >k360degres ) this.rotation  =0;
-		//console.log("Camera : " + Math.floor(todegrees(this.rotation)));
 	}
 	this.walk = function(amount){// -1 or +1
-		// Calculate new position considering the amount, the position and the direction
-		//collideCirclePoly(cx, cy, diameter, vertices, interior) 
-	
 		this.savePosition();
 		var dirx = Math.cos(this.rotation);
 		var dirz = - Math.sin(this.rotation);
 		this.position.x = Math.floor(this.position.x + (dirx * amount * this.walkStep)); 
 		this.position.z = Math.floor(this.position.z + (dirz * amount * this.walkStep));
-		
-
 	}
 
 	
 	this.draw = function(){
-		
 		if(mode=="static"){
 			this.drawStatic();
 		}else if(mode=="dynamic"){
@@ -264,7 +203,6 @@ function Camera(rotStep,walkStep,rotation) {
 		} else if (mode=="3d"){
 			this.draw3D();
 		}
-			
 	}
 	
 	this.drawStatic = function(){
@@ -351,7 +289,7 @@ function Camera(rotStep,walkStep,rotation) {
 		things.forEach(function(x){
 				var poly = [x.topLeft,x.topRight,x.bottomRight,x.bottomLeft,x.topLeft];
 				if(collideCirclePoly(self.position.x , self.position.z, self.bodyRadius*2, poly)) {
-					self.restorePosition ();
+					self.restorePosition();
 				}			
 			}); 
 	}
@@ -924,11 +862,7 @@ function drawArrow(context,x1,y1,x2,y2){
 	}
 }
 
-function keepWithInCircle(rotation){
-	if(rotation<0) rotation  += k360degres;
-	if(rotation >k360degres ) rotation  -= k360degres;
-	return rotation;
-}
+
 
 function Shape(geometry,size,distance,altitude,angleToOrigine,rotation,name){
 	
@@ -1066,64 +1000,6 @@ function drawPoly(context,points,poly){
 
 }
 
-
-function simpleRotate(point,angle){
-	var cos = Math.cos(angle);
-	var sin = -Math.sin(angle);
-	rotatedX = point.x * cos - point.y * sin;
-    rotatedY = point.y * cos + point.x * sin;
-	return {"x":rotatedX,"y":rotatedY}
-}
-
-function calcRotationGivenAdjacentSide(adjacent, hypotenuse){
-	if(!hypotenuse) hypotenuse = 1; // if already normed
-	var ratio = adjacent/hypotenuse;
-	var result = 1 - ratio*ratio/2;
-	result = Math.acos(result);
-	return result;	
-}
-	
-function doRotate(points,pitch, roll, yaw) {
-    var cosa = Math.cos(yaw);
-    var sina = Math.sin(yaw);
-
-    var cosb = Math.cos(pitch);
-    var sinb = Math.sin(pitch);
-
-    var cosc = Math.cos(roll);
-    var sinc = Math.sin(roll);
-
-    var Axx = cosa*cosb;
-    var Axy = cosa*sinb*sinc - sina*cosc;
-    var Axz = cosa*sinb*cosc + sina*sinc;
-
-    var Ayx = sina*cosb;
-    var Ayy = sina*sinb*sinc + cosa*cosc;
-    var Ayz = sina*sinb*cosc - cosa*sinc;
-
-    var Azx = -sinb;
-    var Azy = cosb*sinc;
-    var Azz = cosb*cosc;
-
-    for (var i = 0; i < points.length; i++) {
-        var px = points[i].x;
-        var py = points[i].y;
-        var pz = points[i].z;
-
-        points[i].x = Axx*px + Axy*py + Axz*pz;
-        points[i].y = Ayx*px + Ayy*py + Ayz*pz;
-        points[i].z = Azx*px + Azy*py + Azz*pz;
-    }
-	return points;
-}
-
-function calcAngleDegrees(x, y) { // origine : MDN docs
-  return Math.atan2(y, x) * 180 / Math.PI;
-}
-
-function calcAngleRadians(x, y) { // origine : calcAngleDegrees
-  return Math.atan2(y, x);
-}
 
 	document.addEventListener("keydown", function(event) {
 		switch(event.keyCode) {
