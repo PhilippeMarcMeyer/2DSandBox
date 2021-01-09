@@ -1,5 +1,5 @@
-# 3DStuff
-Playing with basic 3D in canvas
+# 2DSansBox
+Playing with basic 2D in canvas
 
 Step 1 : Let's start with 2D as my school lessons in trigonometry are long forgotten
 
@@ -10,10 +10,13 @@ the head of the arrow uses arctant2() to calculate its angle (good pratice)
 The camera is also able to move back and forth.
 
 ToDO : 
-calculate the angle of the squares compared to the angle the camera
-be able to do the same where ever the camera is
-stop moving or rotation de camera arrow but move and rotate the word around
-go 3D with wireframe cubes
+Move the background and not the player who will stay un the center
+make an infinite (or wide) area, with random items (rocks, flowers, ponds, flowers, bushes)
+store the coordinates of the game in local storage or in a database (maybe firebase)
+add creatures and narration
+add variations with time (mobs, vegetation)
+add capacity to hold some items and put then in different locations
+add multiplayer capicity
 
 #Step 1 illustrated
-![result for step 1](https://raw.githubusercontent.com/PhilippeMarcMeyer/3DStuff/master/img/step1.jpg)
+![result for step 1](https://raw.githubusercontent.com/PhilippeMarcMeyer/2DSansBox/master/img/step1.jpg)
