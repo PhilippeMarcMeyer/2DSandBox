@@ -19,4 +19,5 @@ add capacity to hold some items and put then in different locations
 add multiplayer capicity
 
 #Step 1 illustrated
+
 ![result for step 1](https://raw.githubusercontent.com/PhilippeMarcMeyer/2DSansBox/master/img/step1.jpg)
