@@ -20,4 +20,4 @@ add multiplayer capicity
 
 #Step 1 illustrated
 
-![result for step 1](https://raw.githubusercontent.com/PhilippeMarcMeyer/2DSansBox/master/img/step1.jpg)
+![result for step 1](https://raw.githubusercontent.com/PhilippeMarcMeyer/2DSansBox/master/img/2dstuff.png)
